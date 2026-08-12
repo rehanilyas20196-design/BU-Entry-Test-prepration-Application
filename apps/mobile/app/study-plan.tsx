@@ -1,0 +1,116 @@
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useTheme } from '@/hooks/useTheme';
+import { AppText } from '@/components/ui/AppText';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
+import { Feather } from '@expo/vector-icons';
+
+interface StudyPlanResponse {
+  id: string;
+  days: { day: number; focus_topics: string[]; question_target: number; notes: string }[];
+}
+
+export default function StudyPlanScreen() {
+  const { colors } = useTheme();
+  const router = useRouter();
+  const session = useAuthStore((s) => s.session);
+
+  const [testDate, setTestDate] = useState('');
+  const [dailyMinutes, setDailyMinutes] = useState('60');
+  const [plan, setPlan] = useState<StudyPlanResponse | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => api.get<{ test_date: string | null; daily_study_minutes: number | null }>('/users/me/profile'),
+    enabled: !!session,
+  });
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const res = await api.post<StudyPlanResponse>('/ai/study-plan', {
+        test_date: testDate || profile?.test_date || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        daily_study_minutes: Number(dailyMinutes) || profile?.daily_study_minutes || 60,
+      });
+      setPlan(res);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Go back">
+          <Feather name="chevron-left" size={24} color={colors.text} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <AppText variant="h2">Study Plan</AppText>
+          <AppText variant="body" color="secondary">AI-generated daily plan adapted to your progress</AppText>
+        </View>
+      </View>
+
+      {!plan && (
+        <Card style={styles.formCard}>
+          <TextField
+            label="Test date (YYYY-MM-DD)"
+            value={testDate}
+            onChangeText={setTestDate}
+            placeholder={profile?.test_date ?? '2026-09-15'}
+          />
+          <TextField
+            label="Daily study minutes"
+            value={dailyMinutes}
+            onChangeText={setDailyMinutes}
+            keyboardType="number-pad"
+            placeholder="60"
+          />
+          <Button title={generating ? 'Generating…' : 'Generate My Plan'} onPress={generate} loading={generating} />
+        </Card>
+      )}
+
+      {plan && (
+        <View style={styles.planList}>
+          {plan.days.map((d) => (
+            <Card key={d.day} elevated={false} style={styles.dayCard}>
+              <View style={styles.dayHeader}>
+                <View style={[styles.dayBadge, { backgroundColor: colors.primaryLight }]}>
+                  <AppText variant="label" color="primary">Day {d.day}</AppText>
+                </View>
+                <AppText variant="small" color="muted">{d.question_target} questions</AppText>
+              </View>
+              <View style={styles.topics}>
+                {d.focus_topics.map((t, i) => (
+                  <View key={i} style={[styles.topicChip, { backgroundColor: colors.surfaceAlt }]}>
+                    <AppText variant="small">{t}</AppText>
+                  </View>
+                ))}
+              </View>
+              {d.notes && <AppText variant="small" color="secondary">{d.notes}</AppText>}
+            </Card>
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, paddingBottom: 40, gap: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  backBtn: { padding: 4 },
+  formCard: { padding: 18, gap: 14 },
+  planList: { gap: 10 },
+  dayCard: { padding: 16, gap: 10 },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dayBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
+  topics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  topicChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+});
