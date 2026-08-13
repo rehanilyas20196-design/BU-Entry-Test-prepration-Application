@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Alert, Switch } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Feather } from '@expo/vector-icons';
 import { useToast } from '@/components/ui/Toast';
+import { confirmAction } from '@/lib/confirm';
 
 interface Profile {
   full_name: string | null;
@@ -48,30 +49,31 @@ export default function ProfileScreen() {
 
   const programName = profile?.program ? (Array.isArray(profile.program) ? profile.program[0]?.name : profile.program.name) : null;
 
-  const handleSignOut = () => {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
-    ]);
+  const handleSignOut = async () => {
+    const ok = await confirmAction({
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Sign out',
+      destructive: true,
+    });
+    if (ok) await signOut();
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert('Delete account', 'This permanently deletes your account and all progress. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await api.delete('/users/me');
-            show('Account deleted', 'success');
-            await signOut();
-          } catch (e) {
-            show(e instanceof Error ? e.message : 'Failed to delete account. Please try again.', 'error');
-          }
-        },
-      },
-    ]);
+  const handleDeleteAccount = async () => {
+    const ok = await confirmAction({
+      title: 'Delete account',
+      message: 'This permanently deletes your account and all progress. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await api.delete('/users/me');
+      show('Account deleted', 'success');
+      await signOut();
+    } catch (e) {
+      show(e instanceof Error ? e.message : 'Failed to delete account. Please try again.', 'error');
+    }
   };
 
   return (
@@ -79,7 +81,7 @@ export default function ProfileScreen() {
       <View style={styles.profileHeader}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <AppText variant="h1" style={{ color: '#FFF' }}>
-            {(profile?.full_name ?? 'S')[0].toUpperCase()}
+            {(profile?.full_name?.trim()?.[0] ?? 'S').toUpperCase()}
           </AppText>
         </View>
         <AppText variant="h2">{profile?.full_name ?? 'Student'}</AppText>

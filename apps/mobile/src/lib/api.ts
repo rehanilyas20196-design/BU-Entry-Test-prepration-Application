@@ -61,12 +61,24 @@ export function setAccessToken(token: string | null) {
   accessToken = token;
 }
 
+function getAccessToken(): string | null {
+  // Always prefer the live session from the auth store. The module-level
+  // variable can go stale (e.g. after Metro hot reload resets module state),
+  // which would otherwise send requests without a token and cause 401s.
+  try {
+    const { useAuthStore } = require('./authStore');
+    return useAuthStore.getState().session?.access_token ?? accessToken;
+  } catch {
+    return accessToken;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (getAccessToken()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
 

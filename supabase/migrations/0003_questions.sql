@@ -76,6 +76,9 @@ declare
   correct_count integer;
   dup_count integer;
 begin
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
   select count(*), count(*) filter (where is_correct), count(distinct lower(trim(option_text)))
     into opt_count, correct_count, dup_count
     from "public"."question_options"

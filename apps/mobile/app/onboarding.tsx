@@ -32,6 +32,15 @@ const TIME_OPTIONS = [
 ];
 
 const CAMPUSES = ['Islamabad', 'Karachi', 'Lahore', 'Other'];
+
+function validateTestDate(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Use YYYY-MM-DD format';
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today ? 'Test date cannot be in the past' : null;
+}
 export default function OnboardingScreen() {
   const { colors } = useTheme();
   const onboard = useOnboardingStore();
@@ -59,6 +68,8 @@ export default function OnboardingScreen() {
   const current = steps[step];
   const isLast = step === steps.length - 1;
 
+  const testDateError = current.key === 'testDate' && testDate ? validateTestDate(testDate) : null;
+
   const canContinue = (() => {
     switch (current.key) {
       case 'name': return fullName.trim().length > 0;
@@ -66,7 +77,7 @@ export default function OnboardingScreen() {
       case 'campus': return campus.length > 0;
       case 'level': return !!onboard.preparationLevel;
       case 'time': return !!onboard.dailyStudyMinutes;
-      case 'testDate': return !!testDate;
+      case 'testDate': return !!testDate && !testDateError;
       default: return true;
     }
   })();
@@ -203,6 +214,7 @@ export default function OnboardingScreen() {
               onChangeText={setTestDate}
               placeholder="2026-09-15"
               autoCapitalize="none"
+              error={testDateError ?? undefined}
             />
           </View>
         );

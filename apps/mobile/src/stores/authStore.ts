@@ -70,6 +70,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ loading: false, error: error.message });
       throw error;
     }
+    if (!data.session) {
+      set({ loading: false, session: null, error: 'Please confirm your email before signing in.' });
+      setAccessToken(null);
+      throw new Error('Account created. Please check your email to confirm your account, then sign in.');
+    }
     setAccessToken(data.session?.access_token ?? null);
     set({ session: data.session, loading: false });
   },
