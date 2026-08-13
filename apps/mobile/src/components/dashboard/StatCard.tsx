@@ -26,11 +26,11 @@ export function StatCard({ label, value, icon, accent, sub }: StatCardProps) {
           <AppText variant="micro" color="muted">
             {label}
           </AppText>
-          <AppText variant="h3" style={{ color: colors.text }}>
+          <AppText variant="bodyMedium" style={[styles.value, { color: colors.text }]}>
             {value}
           </AppText>
           {sub && (
-            <AppText variant="small" color="muted">
+            <AppText variant="small" color="muted" numberOfLines={1}>
               {sub}
             </AppText>
           )}
@@ -41,8 +41,9 @@ export function StatCard({ label, value, icon, accent, sub }: StatCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 14 },
-  row: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  iconWrap: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  content: { flex: 1, gap: 2 },
+  card: { flex: 1, borderWidth: 1, borderRadius: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  iconWrap: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  content: { flex: 1, gap: 1 },
+  value: { fontSize: 18, lineHeight: 24, fontWeight: '800' },
 });

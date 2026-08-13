@@ -1,15 +1,28 @@
-import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, {
+  FadeIn,
+  SlideInDown,
+  SlideOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Timer } from '@/components/ui/Timer';
+import { AnimatedProgressBar } from '@/components/ui/Animated';
+import { SkeletonCard } from '@/components/ui/SkeletonLoader';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { GlassCard } from '@/components/ui/GlassCard';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useMockTestStore } from '@/stores/mockTestStore';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface StartResponse {
   attempt: { id: string };
@@ -26,6 +39,16 @@ export default function MockTestScreen() {
 
   const mode = (params.mode ?? 'practice') as 'practice' | 'timed_practice' | 'full_mock';
   const [showPalette, setShowPalette] = useState(false);
+  const paletteOpen = useSharedValue(0);
+
+  useEffect(() => {
+    paletteOpen.value = withTiming(showPalette ? 1 : 0, { duration: 240 });
+  }, [showPalette, paletteOpen]);
+
+  const paletteStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - paletteOpen.value) * 320 }],
+    opacity: paletteOpen.value,
+  }));
 
   const { isLoading, error } = useQuery({
     queryKey: ['start-test', params.testId, mode],
@@ -61,11 +84,13 @@ export default function MockTestScreen() {
   const selected = store.answers[store.currentIndex];
   const isMarked = store.markedForReview.has(store.currentIndex);
   const answeredCount = Object.keys(store.answers).length;
+  const progress = store.questions.length > 0 ? (store.currentIndex + 1) / store.questions.length : 0;
 
   const handleSelect = useCallback(
     (optionKey: string) => {
       if (!current) return;
       store.answer(store.currentIndex, optionKey);
+      void Haptics.selectionAsync();
       void saveAnswer.mutateAsync({ question_id: current.question.id, selected_option: optionKey }).catch(() => {});
     },
     [current, store, saveAnswer],
@@ -91,7 +116,8 @@ export default function MockTestScreen() {
   if (isLoading || !current) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <SkeletonCard lines={4} style={{ width: '100%' }} />
+        <SkeletonCard lines={3} style={{ width: '100%' }} />
         <AppText variant="body" color="secondary">Starting test…</AppText>
       </View>
     );
@@ -100,8 +126,10 @@ export default function MockTestScreen() {
   if (error) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <AppText variant="h3">Unable to start test</AppText>
-        <AppText variant="body" color="secondary">Check your connection and try again.</AppText>
+        <ErrorState
+          title="Unable to start test"
+          message="Check your connection and try again."
+        />
         <Button title="Go back" variant="outline" onPress={() => router.back()} />
       </View>
     );
@@ -114,53 +142,66 @@ export default function MockTestScreen() {
           <Feather name="x" size={22} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <AppText variant="micro" color="muted">{mode.replace('_', ' ')}</AppText>
-          <AppText variant="label">
-            Question {store.currentIndex + 1} of {store.questions.length}
-          </AppText>
+          <View style={styles.headerMeta}>
+            <AppText variant="micro" color="muted">{mode.replace('_', ' ')}</AppText>
+            {store.secondsRemaining !== null && <Timer totalSeconds={store.secondsRemaining} onExpire={handleExpire} />}
+          </View>
+          <AnimatedProgressBar progress={progress} height={4} delay={0} />
         </View>
-        {store.secondsRemaining !== null && (
-          <Timer totalSeconds={store.secondsRemaining} onExpire={handleExpire} />
-        )}
+        <Pressable onPress={() => setShowPalette((v) => !v)} style={styles.headerBtn} accessibilityLabel="Open question palette">
+          <Feather name="grid" size={20} color={colors.text} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <View style={styles.metaRow}>
-          <AppText variant="small" color="muted">{current.question.difficulty}</AppText>
-          {isMarked && (
-            <View style={[styles.markedBadge, { backgroundColor: colors.warningLight }]}>
-              <Feather name="flag" size={12} color={colors.warning} />
-              <AppText variant="micro" color="warning">Marked for review</AppText>
+        <Animated.View key={current.question.id} entering={FadeIn.duration(280)} style={{ gap: 16 }}>
+          <View style={styles.metaRow}>
+            <View style={styles.qBadge}>
+              <AppText variant="label" style={styles.qBadgeText}>
+                Q{store.currentIndex + 1}
+              </AppText>
             </View>
-          )}
-        </View>
+            <AppText variant="small" color="muted">{current.question.difficulty}</AppText>
+            {isMarked && (
+              <View style={[styles.markedBadge, { backgroundColor: colors.warningLight }]}>
+                <Feather name="flag" size={12} color={colors.warning} />
+                <AppText variant="micro" color="warning">Review</AppText>
+              </View>
+            )}
+          </View>
 
-        <AppText variant="bodyMedium" style={styles.questionText}>
-          {current.question.question_text}
-        </AppText>
+          <AppText variant="bodyMedium" style={styles.questionText}>
+            {current.question.question_text}
+          </AppText>
 
-        <View style={styles.options}>
-          {current.question.options.map((o) => {
-            const isSelected = selected === o.key;
-            return (
-              <Pressable
-                key={o.key}
-                onPress={() => handleSelect(o.key)}
-                style={[
-                  styles.option,
-                  { backgroundColor: isSelected ? colors.primaryLight : colors.surface, borderColor: isSelected ? colors.primary : colors.border },
-                ]}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected }}
-              >
-                <View style={[styles.optionBadge, { backgroundColor: isSelected ? colors.primary : colors.surfaceAlt }]}>
-                  <AppText variant="label" style={{ color: isSelected ? '#FFF' : colors.textSecondary }}>{o.key}</AppText>
-                </View>
-                <AppText variant="body" style={{ flex: 1 }}>{o.text}</AppText>
-              </Pressable>
-            );
-          })}
-        </View>
+          <View style={styles.options}>
+            {current.question.options.map((o) => {
+              const isSelected = selected === o.key;
+              return (
+                <Pressable
+                  key={o.key}
+                  onPress={() => handleSelect(o.key)}
+                  style={({ pressed }) => [
+                    styles.option,
+                    {
+                      backgroundColor: isSelected ? colors.primaryLight : colors.surface,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
+                    pressed && styles.optionPressed,
+                  ]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                >
+                  <View style={[styles.optionBadge, { backgroundColor: isSelected ? colors.primary : colors.surfaceAlt }]}>
+                    <AppText variant="label" style={{ color: isSelected ? '#FFF' : colors.textSecondary }}>{o.key}</AppText>
+                  </View>
+                  <AppText variant="body" style={{ flex: 1 }}>{o.text}</AppText>
+                  {isSelected && <Feather name="check" size={18} color={colors.primary} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Animated.View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -186,10 +227,24 @@ export default function MockTestScreen() {
       </View>
 
       {showPalette && (
-        <View style={[styles.palette, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <AppText variant="label" style={{ marginBottom: 8 }}>
-            Questions · {answeredCount} answered
-          </AppText>
+        <Pressable style={styles.backdrop} onPress={() => setShowPalette(false)} accessibilityLabel="Close palette" />
+      )}
+      <Animated.View
+        entering={SlideInDown.duration(240)}
+        exiting={SlideOutDown.duration(200)}
+        style={[
+          styles.palette,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          paletteStyle,
+        ]}
+      >
+        <GlassCard style={styles.paletteInner}>
+          <View style={styles.paletteHeader}>
+            <AppText variant="label">Questions · {answeredCount} answered</AppText>
+            <Pressable onPress={() => setShowPalette(false)} hitSlop={8} accessibilityLabel="Close palette">
+              <Feather name="x" size={18} color={colors.textMuted} />
+            </Pressable>
+          </View>
           <View style={styles.paletteGrid}>
             {store.questions.map((q, i) => {
               const isAnswered = store.answers[i] != null;
@@ -198,7 +253,10 @@ export default function MockTestScreen() {
               return (
                 <Pressable
                   key={i}
-                  onPress={() => store.goTo(i)}
+                  onPress={() => {
+                    store.goTo(i);
+                    setShowPalette(false);
+                  }}
                   style={[
                     styles.paletteItem,
                     {
@@ -214,21 +272,16 @@ export default function MockTestScreen() {
                   ]}
                   accessibilityLabel={`Question ${i + 1}`}
                 >
-                  <AppText
-                    variant="small"
-                    style={{ color: isCurrent ? '#FFF' : colors.text, fontWeight: '700' }}
-                  >
+                  <AppText variant="small" style={{ color: isCurrent ? '#FFF' : colors.text, fontWeight: '700' }}>
                     {i + 1}
                   </AppText>
                 </Pressable>
               );
             })}
           </View>
-          <View style={styles.paletteLegend}>
-            <AppText variant="small" color="muted">Blue = current · filled = answered · yellow = review</AppText>
-          </View>
-        </View>
-      )}
+          <AppText variant="small" color="muted">Blue = current · filled = answered · yellow = review</AppText>
+        </GlassCard>
+      </Animated.View>
     </View>
   );
 }
@@ -238,25 +291,29 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   headerBtn: { padding: 4 },
-  body: { padding: 20, paddingBottom: 24, gap: 16 },
+  headerMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  body: { padding: 20, paddingBottom: 24 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  qBadge: {
+    backgroundColor: '#6366F1', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  qBadgeText: { color: '#FFF' },
   markedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   questionText: { fontSize: 17, lineHeight: 26 },
   options: { gap: 10 },
   option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5,
   },
+  optionPressed: { transform: [{ scale: 0.99 }], opacity: 0.9 },
   optionBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   footer: { padding: 16, gap: 10, paddingBottom: 28 },
   footerRow: { flexDirection: 'row', gap: 8 },
-  palette: { position: 'absolute', top: 56, left: 12, right: 12, borderRadius: 14, borderWidth: 1, padding: 14, zIndex: 10 },
-  paletteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 5 },
+  palette: { position: 'absolute', left: 12, right: 12, bottom: 12, borderRadius: 16, borderWidth: 1, overflow: 'hidden', zIndex: 10 },
+  paletteInner: { padding: 14 },
+  paletteHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  paletteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   paletteItem: { width: 38, height: 38, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  paletteLegend: { marginTop: 10 },
 });

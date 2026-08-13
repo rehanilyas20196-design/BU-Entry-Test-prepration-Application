@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { Badge } from '@/components/ui/Badge';
+import { Feather } from '@expo/vector-icons';
 import { OptionButton, QuestionOption } from './OptionButton';
 
 export interface PracticeQuestion {
@@ -14,6 +16,7 @@ export interface PracticeQuestion {
   options: QuestionOption[];
   correct_option?: string;
   explanation?: string | null;
+  solution_steps?: string[] | null;
   hint?: string | null;
 }
 
@@ -62,15 +65,57 @@ export function QuestionCard({
         ))}
       </View>
 
+      {showExplanation && question.correct_option && (
+        <Animated.View
+          entering={ZoomIn.duration(260)}
+          style={[styles.answerBanner, { backgroundColor: colors.successLight, borderColor: colors.success }]}
+        >
+          <Feather name="check-circle" size={18} color={colors.success} />
+          <AppText variant="bodyMedium" color="success">
+            Correct answer: {question.correct_option}
+          </AppText>
+        </Animated.View>
+      )}
+
       {showExplanation && explanation && (
-        <View style={[styles.explanation, { backgroundColor: colors.primaryLight }]}>
+        <Animated.View
+          entering={FadeInDown.duration(320)}
+          style={[styles.explanation, { backgroundColor: colors.primaryLight }]}
+        >
           <AppText variant="label" color="primary">
-            Explanation
+            Why is this the answer?
           </AppText>
           <AppText variant="body" color="text">
             {explanation}
           </AppText>
-        </View>
+        </Animated.View>
+      )}
+
+      {showExplanation && question.solution_steps && question.solution_steps.length > 0 && (
+        <Animated.View
+          entering={FadeInDown.duration(380)}
+          style={[styles.explanation, { backgroundColor: colors.surfaceAlt }]}
+        >
+          <AppText variant="label" color="secondary">
+            Step-by-step solution
+          </AppText>
+          {question.solution_steps.map((step, i) => (
+            <View key={i} style={styles.stepRow}>
+              <View style={[styles.stepNum, { backgroundColor: colors.primaryLight }]}>
+                <AppText variant="small" color="primary">{i + 1}</AppText>
+              </View>
+              <AppText variant="body" color="text" style={styles.stepText}>{step}</AppText>
+            </View>
+          ))}
+        </Animated.View>
+      )}
+
+      {showExplanation && !question.explanation && !explanation && (
+        <Animated.View entering={FadeInDown.duration(320)} style={[styles.explanation, { backgroundColor: colors.surfaceAlt }]}>
+          <AppText variant="body" color="muted">
+            No explanation provided for this question yet.
+          </AppText>
+        </Animated.View>
       )}
     </View>
   );
@@ -81,5 +126,24 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   question: { fontSize: 17, lineHeight: 26 },
   options: { gap: 10 },
+  answerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
   explanation: { borderRadius: 12, padding: 14, gap: 6 },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  stepNum: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  stepText: { flex: 1 },
 });

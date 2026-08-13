@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIJSONResponse, AIProvider, AIRequestOptions, AIResponse } from './ai-provider.interface';
 
-/** Google Gemini provider (generativelanguage API). */
+/** Google Gemini provider (Interactions API). */
 @Injectable()
 export class GeminiProvider implements AIProvider {
   readonly name = 'gemini';
@@ -14,26 +14,32 @@ export class GeminiProvider implements AIProvider {
   }
 
   private get defaultModel(): string {
-    return this.config.get<string>('GEMINI_MODEL') ?? 'gemini-1.5-flash';
+    return this.config.get<string>('GEMINI_MODEL') ?? 'gemini-flash-latest';
   }
 
   private async generate(messages: { role: string; content: string }[], opts: AIRequestOptions): Promise<AIResponse> {
     const model = opts.model ?? this.defaultModel;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
-    const contents = messages.map((m) => ({
-      role: m.role === 'assistant' ? 'model' : m.role === 'system' ? 'user' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n');
+    const input = messages
+      .filter((m) => m.role !== 'system')
+      .map((m) => m.content)
+      .join('\n');
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': this.apiKey,
+      },
       body: JSON.stringify({
-        contents,
-        generationConfig: {
+        model,
+        input,
+        system_instruction: system || undefined,
+        generation_config: {
           temperature: opts.temperature ?? 0.3,
-          maxOutputTokens: opts.maxTokens ?? 3000,
+          max_output_tokens: opts.maxTokens ?? 3000,
         },
       }),
     });
@@ -44,16 +50,19 @@ export class GeminiProvider implements AIProvider {
     }
 
     const json = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+      steps?: { type?: string; content?: { type?: string; text?: string }[] }[];
+      usage?: { total_input_tokens?: number; total_output_tokens?: number };
+      model?: string;
     };
 
+    const modelOutput = json.steps?.find((s) => s.type === 'model_output');
+
     return {
-      text: json.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
-      model,
+      text: modelOutput?.content?.find((p) => p.type === 'text')?.text ?? '',
+      model: json.model ?? model,
       usage: {
-        promptTokens: json.usageMetadata?.promptTokenCount,
-        completionTokens: json.usageMetadata?.candidatesTokenCount,
+        promptTokens: json.usage?.total_input_tokens,
+        completionTokens: json.usage?.total_output_tokens,
       },
     };
   }

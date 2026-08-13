@@ -31,6 +31,17 @@ export class EngagementService {
     return data;
   }
 
+  async isBookmarked(userId: string, questionId: string) {
+    const { data, error } = await this.supabase.admin
+      .from('bookmarks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('question_id', questionId)
+      .maybeSingle();
+    if (error) throw error;
+    return { bookmarked: !!data };
+  }
+
   async removeBookmark(userId: string, questionId: string) {
     const { error } = await this.supabase.admin
       .from('bookmarks')

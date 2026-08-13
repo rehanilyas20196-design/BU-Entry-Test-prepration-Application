@@ -9,11 +9,16 @@ export class TestsService {
   async listMockTests() {
     const { data, error } = await this.supabase.admin
       .from('mock_tests')
-      .select('id, name, description, question_count, duration_minutes, is_active')
+      .select('id, name, description, question_count, duration_minutes, is_active, mock_test_questions(count)')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data;
+    return (data ?? []).map((t: any) => ({
+      ...t,
+      actual_question_count: Array.isArray(t.mock_test_questions) && t.mock_test_questions[0]
+        ? (t.mock_test_questions[0].count ?? 0)
+        : t.question_count,
+    }));
   }
 
   /** Start a test attempt: creates attempt + snapshots the question set in order. */
@@ -50,7 +55,7 @@ export class TestsService {
         mode: dto.mode ?? 'practice',
         status: 'in_progress',
         total_questions: ordered.length,
-        max_score: mockTest.question_count,
+        max_score: ordered.length,
       })
       .select()
       .single();
@@ -136,7 +141,7 @@ export class TestsService {
 
     const { data: answers, error: ansErr } = await this.supabase.admin
       .from('test_answers')
-      .select('question_id, selected_option, is_correct, time_spent_seconds')
+      .select('question_id, selected_option, is_correct, time_spent_seconds, question:questions(id, topic_id)')
       .eq('attempt_id', attemptId);
     if (ansErr) throw ansErr;
 
@@ -175,7 +180,61 @@ export class TestsService {
         .eq('id', stats.id);
     }
 
+    // Auto-record wrong answers into the Mistakes review list.
+    await this.syncMistakes(userId, answers ?? []);
+
     return this.getResult(userId, attemptId);
+  }
+
+  /** Upsert the mistakes table from a mock attempt so wrong answers appear in "Questions You Got Wrong". */
+  private async syncMistakes(userId: string, answers: any[]) {
+    for (const a of answers) {
+      const question = Array.isArray(a.question) ? a.question[0] : a.question;
+      const topicId = question?.topic_id ?? null;
+
+      const { data: existing } = await this.supabase.admin
+        .from('mistakes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('question_id', a.question_id)
+        .maybeSingle();
+
+      if (a.is_correct) {
+        if (existing) {
+          const correctCount = existing.correct_count + 1;
+          const total = existing.wrong_count + correctCount;
+          await this.supabase.admin
+            .from('mistakes')
+            .update({
+              correct_count: correctCount,
+              last_accuracy: Math.round((correctCount / total) * 10000) / 100,
+              resolved: correctCount >= existing.wrong_count,
+            })
+            .eq('id', existing.id);
+        }
+      } else if (existing) {
+        await this.supabase.admin
+          .from('mistakes')
+          .update({
+            wrong_count: existing.wrong_count + 1,
+            last_wrong_at: new Date().toISOString(),
+            resolved: false,
+            topic_id: topicId ?? existing.topic_id,
+          })
+          .eq('id', existing.id);
+      } else {
+        await this.supabase.admin.from('mistakes').insert({
+          user_id: userId,
+          question_id: a.question_id,
+          topic_id: topicId,
+          last_wrong_at: new Date().toISOString(),
+          wrong_count: 1,
+          correct_count: 0,
+          last_accuracy: 0,
+          resolved: false,
+        });
+      }
+    }
   }
 
   /** Full result breakdown: score, per-subject/topic/difficulty performance. */

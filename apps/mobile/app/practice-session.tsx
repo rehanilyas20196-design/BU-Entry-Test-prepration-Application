@@ -1,11 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { AnimatedProgressBar } from '@/components/ui/Animated';
 import { QuestionCard, PracticeQuestion } from '@/components/question/QuestionCard';
-import { useQuery } from '@tanstack/react-query';
+import { SkeletonCard } from '@/components/ui/SkeletonLoader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/components/ui/Toast';
@@ -19,6 +25,7 @@ interface PracticeResponse {
   explanation: string | null;
   hint: string | null;
   difficulty: string;
+  solution_steps?: string[] | null;
   subject?: { name: string } | { name: string }[] | null;
   topic?: { name: string } | { name: string }[] | null;
   options: { option_key: string; option_text: string; is_correct: boolean }[];
@@ -27,16 +34,16 @@ interface PracticeResponse {
 export default function PracticeSessionScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ subjectId: string; topicId?: string; topicName?: string }>();
+  const params = useLocalSearchParams<{ subjectId: string; topicId?: string; topicName?: string; smartRetry?: string; similarTo?: string }>();
   const { show } = useToast();
   const session = useAuthStore((s) => s.session);
 
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
   const questionStart = useRef(Date.now());
 
   const queryParams = [
@@ -47,13 +54,33 @@ export default function PracticeSessionScreen() {
     .filter(Boolean)
     .join('&');
 
-  const { data: questions, isLoading, error } = useQuery({
-    queryKey: ['practice-set', params.subjectId, params.topicId],
-    queryFn: () => api.get<PracticeResponse[]>(`/questions/practice?${queryParams}`),
+  const fetchQuestions = () => {
+    if (params.smartRetry === '1') {
+      return api.get<PracticeResponse[]>('/mistakes/smart-retry');
+    }
+    if (params.similarTo) {
+      return api.get<PracticeResponse[]>(
+        `/questions/similar?question_id=${params.similarTo}&exclude_id=${params.similarTo}`,
+      );
+    }
+    return api.get<PracticeResponse[]>(`/questions/practice?${queryParams}`);
+  };
+
+  const { data: questions, isLoading, error, refetch } = useQuery({
+    queryKey: ['practice-set', params.subjectId, params.topicId, params.smartRetry, params.similarTo],
+    queryFn: fetchQuestions,
     enabled: !!session,
   });
 
   const question = questions?.[index];
+
+  const { data: bookmarkData } = useQuery({
+    queryKey: ['bookmarked', question?.id],
+    queryFn: () => api.get<{ bookmarked: boolean }>(`/bookmarks/${question?.id}`),
+    enabled: !!question,
+  });
+  const bookmarked = bookmarkData?.bookmarked ?? false;
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     questionStart.current = Date.now();
@@ -68,9 +95,10 @@ export default function PracticeSessionScreen() {
     setAnswered(true);
 
     const timeSpent = Math.round((Date.now() - questionStart.current) / 1000);
-    const isCorrect = option.key === question.correct_option;
+    const correct = option.key === question.correct_option;
+    setIsCorrect(correct);
 
-    if (isCorrect) {
+    if (correct) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -83,7 +111,7 @@ export default function PracticeSessionScreen() {
         topic_id: params.topicId ?? null,
         difficulty: question.difficulty,
         selected_option: option.key,
-        is_correct: isCorrect,
+        is_correct: correct,
         time_spent_seconds: timeSpent,
         mode: 'practice',
       });
@@ -109,12 +137,12 @@ export default function PracticeSessionScreen() {
     if (!question) return;
     if (bookmarked) {
       await api.delete(`/bookmarks/${question.id}`);
-      setBookmarked(false);
     } else {
       await api.post('/bookmarks', { question_id: question.id });
-      setBookmarked(true);
       show('Bookmarked', 'success');
     }
+    void queryClient.invalidateQueries({ queryKey: ['bookmarked', question.id] });
+    void queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
   };
 
   const handleReport = () => {
@@ -141,6 +169,7 @@ export default function PracticeSessionScreen() {
     question_text: q.question_text,
     correct_option: q.correct_option,
     explanation: q.explanation,
+    solution_steps: q.solution_steps ?? null,
     difficulty: q.difficulty,
     subject: q.subject,
     topic: q.topic,
@@ -150,8 +179,8 @@ export default function PracticeSessionScreen() {
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <AppText variant="body" color="secondary">Loading questions…</AppText>
+        <SkeletonCard lines={3} style={{ width: '100%' }} />
+        <SkeletonCard lines={4} style={{ width: '100%' }} />
       </View>
     );
   }
@@ -159,10 +188,11 @@ export default function PracticeSessionScreen() {
   if (error) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <AppText variant="h3">Unable to load questions</AppText>
-        <AppText variant="body" color="secondary" style={{ textAlign: 'center' }}>
-          {error instanceof Error ? error.message : 'Something went wrong. Please try again.'}
-        </AppText>
+        <ErrorState
+          title="Unable to load questions"
+          message={error instanceof Error ? error.message : 'Something went wrong. Please try again.'}
+          onRetry={() => refetch()}
+        />
         <Button title="Go back" variant="outline" onPress={() => router.back()} />
       </View>
     );
@@ -171,14 +201,17 @@ export default function PracticeSessionScreen() {
   if (!questions || questions.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <AppText variant="h3">No questions found</AppText>
-        <AppText variant="body" color="secondary" style={{ textAlign: 'center' }}>
-          There are no approved practice questions for this selection yet.
-        </AppText>
+        <EmptyState
+          icon="book-open"
+          title="No questions found"
+          message="There are no approved practice questions for this selection yet."
+        />
         <Button title="Go back" variant="outline" onPress={() => router.back()} />
       </View>
     );
   }
+
+  const progress = (index + (answered ? 1 : 0)) / questions.length;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -186,10 +219,14 @@ export default function PracticeSessionScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Exit practice">
           <Feather name="x" size={22} color={colors.text} />
         </Pressable>
-        <View style={styles.progressText}>
-          <AppText variant="label" color="secondary">
-            {index + 1} / {questions.length}
-          </AppText>
+        <View style={styles.progressWrap}>
+          <View style={styles.progressTop}>
+            <AppText variant="label" color="secondary">
+              {index + 1} / {questions.length}
+            </AppText>
+            <AppText variant="micro" color="muted">{params.topicName ?? 'Practice'}</AppText>
+          </View>
+          <AnimatedProgressBar progress={progress} height={5} delay={0} />
         </View>
         <Pressable onPress={handleBookmark} style={styles.headerBtn} accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark question'}>
           <Feather name="bookmark" size={22} color={bookmarked ? colors.primary : colors.textSecondary} />
@@ -200,33 +237,58 @@ export default function PracticeSessionScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {question && <QuestionCard question={toQuestionCard(question)} selected={selected ?? undefined} showExplanation={answered} explanation={answered ? question.explanation : null} onSelect={(o) => handleSelect(o)} />}
+        <Animated.View key={question?.id} entering={FadeIn.duration(300)} style={{ gap: 16 }}>
+          {question && <QuestionCard question={toQuestionCard(question)} selected={selected ?? undefined} showExplanation={answered} explanation={answered ? question.explanation : null} onSelect={(o) => handleSelect(o)} />}
 
-        {!answered && (
-          <View style={styles.hintRow}>
-            <Button title={hintLoading ? 'Loading…' : 'Give me a hint'} variant="ghost" onPress={handleHint} disabled={hintLoading} fullWidth={false} />
-            <Pressable
-              onPress={() => router.push({ pathname: '/ai-tutor', params: { questionId: question?.id } })}
-              style={styles.tutorBtn}
-              accessibilityRole="button"
+          {answered && (
+            <Animated.View
+              entering={FadeInDown.duration(300)}
+              style={[
+                styles.resultBanner,
+                { backgroundColor: isCorrect ? colors.successLight : colors.dangerLight, borderColor: isCorrect ? colors.success : colors.danger },
+              ]}
             >
-              <Feather name="message-circle" size={16} color={colors.primary} />
-              <AppText variant="label" color="primary">Ask AI</AppText>
-            </Pressable>
-          </View>
-        )}
+              <Feather name={isCorrect ? 'check-circle' : 'x-circle'} size={22} color={isCorrect ? colors.success : colors.danger} />
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyMedium" color={isCorrect ? 'success' : 'danger'}>
+                  {isCorrect ? 'Correct!' : 'Not quite'}
+                </AppText>
+                <AppText variant="small" color="muted">
+                  {isCorrect ? 'Great job — keep the momentum going.' : 'Review the explanation below and try similar questions.'}
+                </AppText>
+              </View>
+            </Animated.View>
+          )}
 
-        {hint && !answered && (
-          <View style={[styles.hintBox, { backgroundColor: colors.warningLight }]}>
-            <AppText variant="caption" color="warning" style={{ fontWeight: '700' }}>Hint</AppText>
-            <AppText variant="body">{hint}</AppText>
-          </View>
-        )}
+          {!answered && (
+            <View style={styles.hintRow}>
+              <Button title={hintLoading ? 'Loading…' : 'Give me a hint'} variant="ghost" onPress={handleHint} disabled={hintLoading} fullWidth={false} />
+              <Pressable
+                onPress={() => router.push({ pathname: '/ai-tutor', params: { questionId: question?.id } })}
+                style={styles.tutorBtn}
+                accessibilityRole="button"
+              >
+                <Feather name="message-circle" size={16} color={colors.primary} />
+                <AppText variant="label" color="primary">Ask AI</AppText>
+              </Pressable>
+            </View>
+          )}
+
+          {hint && !answered && (
+            <Animated.View
+              entering={FadeInDown.duration(260)}
+              style={[styles.hintBox, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}
+            >
+              <AppText variant="caption" color="warning" style={{ fontWeight: '700' }}>Hint</AppText>
+              <AppText variant="body">{hint}</AppText>
+            </Animated.View>
+          )}
+        </Animated.View>
       </ScrollView>
 
       <View style={styles.footer}>
         {answered ? (
-          <Button
+          <AnimatedButton
             title={index < questions.length - 1 ? 'Next Question' : 'Finish Session'}
             onPress={() => (index < questions.length - 1 ? setIndex(index + 1) : router.back())}
             size="lg"
@@ -251,10 +313,20 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerBtn: { padding: 4 },
-  progressText: { flex: 1 },
-  body: { padding: 20, paddingBottom: 24, gap: 16 },
+  progressWrap: { flex: 1, gap: 6 },
+  progressTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  body: { padding: 20, paddingBottom: 24 },
+  resultBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
   hintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tutorBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  hintBox: { borderRadius: 12, padding: 14, gap: 6 },
+  hintBox: { borderRadius: 12, padding: 14, gap: 6, borderWidth: 1 },
   footer: { padding: 16, paddingBottom: 28 },
 });

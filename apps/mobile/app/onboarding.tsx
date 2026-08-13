@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { FloatingParticles } from '@/components/ui/FloatingParticles';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { Feather } from '@expo/vector-icons';
 
 interface ProgramOption {
   id: string;
@@ -33,6 +36,37 @@ const TIME_OPTIONS = [
 
 const CAMPUSES = ['Islamabad', 'Karachi', 'Lahore', 'Other'];
 
+const INTRO_SLIDES = [
+  {
+    key: 'practice',
+    icon: 'edit-3' as const,
+    title: 'Practice smarter',
+    subtitle: 'Thousands of real BUET-style MCQs across every subject, with instant feedback and step-by-step solutions.',
+    gradient: ['#6366F1', '#7C3AED', '#A855F7'] as const,
+  },
+  {
+    key: 'mock',
+    icon: 'clipboard' as const,
+    title: 'Face the real exam',
+    subtitle: 'Full-length timed mock tests that mirror the actual paper — including a smart question palette and review.',
+    gradient: ['#0EA5E9', '#6366F1', '#7C3AED'] as const,
+  },
+  {
+    key: 'insights',
+    icon: 'trending-up' as const,
+    title: 'Know your weak spots',
+    subtitle: 'A live performance dashboard tracks accuracy per subject and topic, so you always know what to fix next.',
+    gradient: ['#F59E0B', '#F97316', '#E11D48'] as const,
+  },
+  {
+    key: 'ai',
+    icon: 'message-circle' as const,
+    title: 'Your AI study coach',
+    subtitle: 'Get hints, explanations and a personalised study plan from your built-in AI tutor — whenever you are stuck.',
+    gradient: ['#10B981', '#0D9488', '#06B6D4'] as const,
+  },
+];
+
 function validateTestDate(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Use YYYY-MM-DD format';
   const date = new Date(`${value}T00:00:00`);
@@ -41,22 +75,28 @@ function validateTestDate(value: string): string | null {
   today.setHours(0, 0, 0, 0);
   return date < today ? 'Test date cannot be in the past' : null;
 }
+
 export default function OnboardingScreen() {
   const { colors } = useTheme();
   const onboard = useOnboardingStore();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  const [phase, setPhase] = useState<'intro' | 'setup'>('intro');
+  const [slideIndex, setSlideIndex] = useState(0);
   const [step, setStep] = useState(0);
   const [fullName, setFullName] = useState(onboard.fullName);
   const [campus, setCampus] = useState(onboard.campus);
   const [testDate, setTestDate] = useState(onboard.testDate ?? '');
   const [saving, setSaving] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
   const { data: programs, isLoading, error, refetch } = useQuery({
     queryKey: ['programs'],
     queryFn: () => api.get<ProgramOption[]>('/catalog/programs'),
   });
 
-  const steps = [
+  const setupSteps = [
     { key: 'name', title: 'Welcome to BUET Prep AI', subtitle: "Let's personalize your preparation. What's your name?" },
     { key: 'program', title: 'Choose your target program', subtitle: 'Select the degree you are preparing for.' },
     { key: 'campus', title: 'Which campus?', subtitle: 'Select your preferred campus.' },
@@ -65,12 +105,13 @@ export default function OnboardingScreen() {
     { key: 'testDate', title: 'When is your test?', subtitle: 'We will build your countdown and study plan.' },
   ];
 
-  const current = steps[step];
-  const isLast = step === steps.length - 1;
+  const current = setupSteps[step];
+  const isLast = step === setupSteps.length - 1;
 
-  const testDateError = current.key === 'testDate' && testDate ? validateTestDate(testDate) : null;
+  const testDateError = current?.key === 'testDate' && testDate ? validateTestDate(testDate) : null;
 
   const canContinue = (() => {
+    if (!current) return true;
     switch (current.key) {
       case 'name': return fullName.trim().length > 0;
       case 'program': return !!onboard.programId;
@@ -83,6 +124,7 @@ export default function OnboardingScreen() {
   })();
 
   const handleNext = () => {
+    if (!current) return;
     if (current.key === 'name') onboard.setField('fullName', fullName);
     if (current.key === 'campus') onboard.setField('campus', campus);
     if (current.key === 'testDate') onboard.setField('testDate', testDate);
@@ -112,12 +154,17 @@ export default function OnboardingScreen() {
     router.replace('/(tabs)');
   };
 
-  const renderContent = () => {
+  const goToIntroSlide = (i: number) => {
+    listRef.current?.scrollToIndex({ index: i, animated: true });
+    setSlideIndex(i);
+  };
+
+  const renderSetupContent = () => {
     switch (current.key) {
       case 'name':
         return (
           <View style={{ gap: 16 }}>
-            <Image source={require('../assets/campus.png')} style={styles.heroImage} resizeMode="cover" />
+            <Image source={require('../assets/building2.jpg')} style={styles.heroImage} resizeMode="cover" />
             <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="Ali Khan" autoComplete="name" />
           </View>
         );
@@ -222,10 +269,60 @@ export default function OnboardingScreen() {
         return null;
     }
   };
+
+  if (phase === 'intro') {
+    return (
+      <View style={[styles.flex, { backgroundColor: colors.background }]}>
+        <FlatList
+          ref={listRef}
+          data={INTRO_SLIDES}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(s) => s.key}
+          onMomentumScrollEnd={(e) => {
+            const i = Math.round(e.nativeEvent.contentOffset.x / width);
+            setSlideIndex(i);
+          }}
+          renderItem={({ item, index }) => (
+            <View style={[styles.slide, { width }]}>
+              <FloatingParticles count={10} />
+              <GlassCard gradient={item.gradient} glow style={styles.slideIcon}>
+                <Feather name={item.icon} size={46} color="#FFF" />
+              </GlassCard>
+              <AppText variant="h1" style={styles.slideTitle}>{item.title}</AppText>
+              <AppText variant="body" color="secondary" style={styles.slideSubtitle}>{item.subtitle}</AppText>
+              <View style={styles.slideDots}>
+                {INTRO_SLIDES.map((s, i) => (
+                  <Pressable
+                    key={s.key}
+                    onPress={() => goToIntroSlide(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Intro slide ${i + 1}`}
+                    style={[
+                      styles.dot,
+                      { backgroundColor: i === index ? colors.primary : colors.surfaceAlt },
+                      i === index && { width: 26 },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+          onScrollToIndexFailed={() => undefined}
+        />
+        <View style={styles.introFooter}>
+          <Button title={slideIndex === INTRO_SLIDES.length - 1 ? 'Start Preparing' : 'Continue'} size="lg" onPress={() => (slideIndex === INTRO_SLIDES.length - 1 ? setPhase('setup') : goToIntroSlide(slideIndex + 1))} />
+          <Button title="Skip intro" variant="ghost" onPress={() => setPhase('setup')} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.progressTrack}>
-        {steps.map((s, i) => (
+        {setupSteps.map((s, i) => (
           <View
             key={s.key}
             style={[styles.progressDot, { backgroundColor: i <= step ? colors.primary : colors.surfaceAlt }]}
@@ -238,7 +335,7 @@ export default function OnboardingScreen() {
         <AppText variant="body" color="secondary">{current.subtitle}</AppText>
       </View>
 
-      <View style={styles.content}>{renderContent()}</View>
+      <View style={styles.content}>{renderSetupContent()}</View>
 
       <View style={styles.footer}>
         <Button title={isLast ? 'Start Preparing' : 'Continue'} onPress={handleNext} disabled={!canContinue} loading={saving} size="lg" />
@@ -255,15 +352,27 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { flexGrow: 1, padding: 24, gap: 28 },
   progressTrack: { flexDirection: 'row', gap: 8, marginTop: 8 },
   progressDot: { flex: 1, height: 4, borderRadius: 2 },
   header: { gap: 8, marginTop: 16 },
   content: { flex: 1, justifyContent: 'center' },
-  heroImage: { width: '100%', height: 140, borderRadius: 16, overflow: 'hidden' },
+  heroImage: { width: '100%', height: 170, borderRadius: 18, overflow: 'hidden' },
   optionsWrap: { gap: 12 },
   option: { padding: 16, borderRadius: 14, borderWidth: 1.5, gap: 4 },
   errorWrap: { gap: 12, alignItems: 'center' },
   footer: { gap: 8, marginTop: 'auto' },
   disclaimer: { textAlign: 'center' },
+  slide: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 32 },
+  slideIcon: {
+    width: 112, height: 112, borderRadius: 32,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8,
+  },
+  slideTitle: { textAlign: 'center' },
+  slideSubtitle: { textAlign: 'center', maxWidth: 320 },
+  slideDots: { flexDirection: 'row', gap: 8, marginTop: 20 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  introFooter: { padding: 24, paddingBottom: 40, gap: 4 },
 });

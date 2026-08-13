@@ -19,6 +19,11 @@ export class EngagementController {
     return this.engagement.listBookmarks(userId, { subject_id: subjectId, topic_id: topicId, difficulty });
   }
 
+  @Get('bookmarks/:questionId')
+  bookmarked(@CurrentUser('id') userId: string, @Param('questionId') questionId: string) {
+    return this.engagement.isBookmarked(userId, questionId);
+  }
+
   @Post('bookmarks')
   addBookmark(@CurrentUser('id') userId: string, @Body() body: { question_id: string }) {
     return this.engagement.addBookmark(userId, body.question_id);

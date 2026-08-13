@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View, ScrollView, Image } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View, ScrollView, Image, Pressable } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
-import { Button } from '@/components/ui/Button';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { TextField } from '@/components/ui/TextField';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { FloatingParticles } from '@/components/ui/FloatingParticles';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/components/ui/Toast';
+import { palette } from '@/theme/colors';
 
 export default function SignInScreen() {
   const { colors } = useTheme();
@@ -16,6 +21,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
@@ -34,26 +40,35 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.background }]}
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <LinearGradient
+        colors={[palette.backgroundDark, palette.surfaceDark, palette.backgroundDark]}
+        style={StyleSheet.absoluteFill}
+      />
+      <FloatingParticles count={16} color="#A78BFA" />
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.brandBlock}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <AppText variant="h1">BUET Prep AI</AppText>
-          <AppText variant="body" color="secondary" style={styles.subtitle}>
+          <View style={styles.logoRing}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          </View>
+          <AppText variant="h1" style={styles.brandText}>BUET Prep AI</AppText>
+          <AppText variant="body" style={styles.brandSub}>
             Independent preparation for the Bahria University Entry Test
           </AppText>
         </View>
 
-        <Image source={require('../../assets/banner1.png')} style={styles.banner} resizeMode="cover" />
+        <GlassCard style={styles.formCard}>
+          <View style={styles.formHeader}>
+            <AppText variant="h3" style={styles.formTitle}>Welcome back</AppText>
+            <AppText variant="small" color="secondary">Sign in to continue your prep</AppText>
+          </View>
 
-        <View style={styles.form}>
           {error && (
-            <View style={[styles.errorBox, { backgroundColor: colors.dangerLight }]}>
-              <AppText variant="small" color="danger">
-                {error}
-              </AppText>
+            <View style={[styles.errorBox, { backgroundColor: colors.dangerLight, borderColor: colors.danger }]}>
+              <Feather name="alert-circle" size={15} color={colors.danger} />
+              <AppText variant="small" color="danger" style={{ flex: 1 }}>{error}</AppText>
             </View>
           )}
 
@@ -65,37 +80,48 @@ export default function SignInScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            icon={<Feather name="mail" size={17} color={colors.textMuted} />}
           />
           <TextField
             label="Password"
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"
-            secureTextEntry
+            secureTextEntry={!showPassword}
             autoComplete="current-password"
+            icon={<Feather name="lock" size={17} color={colors.textMuted} />}
+            trailing={
+              <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+                <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={colors.textMuted} />
+              </Pressable>
+            }
           />
 
-          <Button title="Sign In" onPress={handleSubmit} loading={loading} size="lg" />
+          <AnimatedButton title="Sign In" onPress={handleSubmit} loading={loading} size="lg" />
 
-          <Button title="Continue with Google" variant="outline" onPress={() => signInWithGoogle().catch((e) => show(e instanceof Error ? e.message : 'Google sign-in failed', 'error'))} />
+          <View style={styles.dividerRow}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <AppText variant="small" color="muted">or</AppText>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
+          <AnimatedButton
+            title="Continue with Google"
+            variant="outline"
+            onPress={() => signInWithGoogle().catch((e) => show(e instanceof Error ? e.message : 'Google sign-in failed', 'error'))}
+          />
 
           <Link href="/(auth)/forgot-password" style={styles.link}>
-            <AppText variant="body" color="primary">
-              Forgot your password?
-            </AppText>
+            <AppText variant="body" color="primary">Forgot your password?</AppText>
           </Link>
 
           <View style={styles.footerRow}>
-            <AppText variant="body" color="secondary">
-              New to BUET Prep?{' '}
-            </AppText>
+            <AppText variant="body" color="secondary">New to BUET Prep?{' '}</AppText>
             <Link href="/(auth)/sign-up">
-              <AppText variant="bodyMedium" color="primary">
-                Create account
-              </AppText>
+              <AppText variant="bodyMedium" color="primary">Create account</AppText>
             </Link>
           </View>
-        </View>
+        </GlassCard>
 
         <AppText variant="small" color="muted" style={styles.disclaimer}>
           This is an independent educational preparation platform and is not affiliated with or endorsed by Bahria University.
@@ -107,14 +133,28 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 32 },
-  brandBlock: { alignItems: 'center', gap: 8 },
-  logo: { width: 90, height: 90, marginBottom: 4 },
-  banner: { width: '100%', height: 120, borderRadius: 16, overflow: 'hidden' },
-  subtitle: { textAlign: 'center' },
-  form: { gap: 16 },
-  errorBox: { padding: 12, borderRadius: 10 },
-  link: { alignSelf: 'center', marginTop: 4 },
-  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
-  disclaimer: { textAlign: 'center', marginTop: 16 },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 28 },
+  brandBlock: { alignItems: 'center', gap: 6 },
+  logoRing: {
+    width: 88, height: 88, borderRadius: 44,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    marginBottom: 6,
+  },
+  logo: { width: 68, height: 68 },
+  brandText: { color: '#FFF' },
+  brandSub: { color: 'rgba(255,255,255,0.72)', textAlign: 'center', maxWidth: 300 },
+  formCard: { padding: 20, gap: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)' },
+  formHeader: { gap: 2, marginBottom: 2 },
+  formTitle: { color: '#FFF' },
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 12, borderRadius: 10, borderWidth: 1,
+  },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  divider: { flex: 1, height: 1 },
+  link: { alignSelf: 'center' },
+  footerRow: { flexDirection: 'row', justifyContent: 'center' },
+  disclaimer: { textAlign: 'center', color: 'rgba(255,255,255,0.5)' },
 });

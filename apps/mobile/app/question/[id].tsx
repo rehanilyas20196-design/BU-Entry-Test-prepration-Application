@@ -5,9 +5,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { QuestionCard, PracticeQuestion } from '@/components/question/QuestionCard';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Feather } from '@expo/vector-icons';
+import { useToast } from '@/components/ui/Toast';
 
 interface QuestionDetail {
   id: string;
@@ -31,11 +32,32 @@ export default function QuestionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { show } = useToast();
 
   const { data: question, isLoading } = useQuery({
     queryKey: ['question', id],
     queryFn: () => api.get<QuestionDetail>(`/questions/${id}`),
   });
+
+  const { data: bookmarkData } = useQuery({
+    queryKey: ['bookmarked', id],
+    queryFn: () => api.get<{ bookmarked: boolean }>(`/bookmarks/${id}`),
+    enabled: !!id,
+  });
+  const bookmarked = bookmarkData?.bookmarked ?? false;
+
+  const toggleBookmark = async () => {
+    if (!id) return;
+    if (bookmarked) {
+      await api.delete(`/bookmarks/${id}`);
+    } else {
+      await api.post('/bookmarks', { question_id: id });
+      show('Bookmarked', 'success');
+    }
+    void queryClient.invalidateQueries({ queryKey: ['bookmarked', id] });
+    void queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+  };
 
   if (isLoading || !question) {
     return (
@@ -50,6 +72,7 @@ export default function QuestionDetailScreen() {
     question_text: q.question_text,
     correct_option: q.correct_option,
     explanation: q.explanation,
+    solution_steps: q.solution_steps,
     difficulty: q.difficulty,
     subject: q.subject,
     topic: q.topic,
@@ -63,6 +86,9 @@ export default function QuestionDetailScreen() {
           <Feather name="chevron-left" size={24} color={colors.text} />
         </Pressable>
         <AppText variant="label" style={{ flex: 1 }}>Question Review</AppText>
+        <Pressable onPress={toggleBookmark} style={styles.headerBtn} accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark question'}>
+          <Feather name="bookmark" size={20} color={bookmarked ? colors.primary : colors.textSecondary} />
+        </Pressable>
         <Pressable onPress={() => router.push({ pathname: '/ai-tutor', params: { questionId: question.id } })} style={styles.headerBtn} accessibilityLabel="Ask AI about this question">
           <Feather name="message-circle" size={20} color={colors.primary} />
         </Pressable>
@@ -76,15 +102,6 @@ export default function QuestionDetailScreen() {
           explanation={showAnswer ? question.explanation : null}
           onSelect={(o) => setSelected(o.key)}
         />
-
-        {question.solution_steps && question.solution_steps.length > 0 && showAnswer && (
-          <View style={[styles.steps, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <AppText variant="label">Step-by-step solution</AppText>
-            {question.solution_steps.map((s, i) => (
-              <AppText key={i} variant="body" color="secondary">{i + 1}. {s}</AppText>
-            ))}
-          </View>
-        )}
 
         <View style={[styles.sourceNote, { backgroundColor: colors.surfaceAlt }]}>
           <AppText variant="small" color="muted">
@@ -113,7 +130,6 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   headerBtn: { padding: 4 },
   body: { padding: 20, gap: 16 },
-  steps: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
   sourceNote: { borderRadius: 12, padding: 12 },
   footer: { padding: 16, paddingBottom: 28 },
 });

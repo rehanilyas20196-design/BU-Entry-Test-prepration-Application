@@ -3,8 +3,12 @@ import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { SkeletonCard } from '@/components/ui/SkeletonLoader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { FadeInView } from '@/components/ui/Animated';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Feather } from '@expo/vector-icons';
@@ -20,13 +24,17 @@ export default function TopicsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ subjectId: string; subjectName: string }>();
 
-  const { data: topics, isLoading } = useQuery({
+  const { data: topics, isLoading, error, refetch } = useQuery({
     queryKey: ['topics', params.subjectId],
     queryFn: () => api.get<Topic[]>(`/catalog/topics?subject_id=${params.subjectId}`),
   });
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Go back">
           <Feather name="chevron-left" size={24} color={colors.text} />
@@ -37,7 +45,7 @@ export default function TopicsScreen() {
         </View>
       </View>
 
-      <Button
+      <AnimatedButton
         title="Practice Mixed Questions"
         onPress={() => router.push({ pathname: '/practice-session', params: { subjectId: params.subjectId, subjectName: params.subjectName } })}
       />
@@ -45,29 +53,42 @@ export default function TopicsScreen() {
       <View style={styles.section}>
         <AppText variant="h3">Topics</AppText>
         {isLoading ? (
-          <AppText variant="body" color="muted">Loading topics…</AppText>
+          <View style={{ gap: 10 }}>
+            {[0, 1, 2].map((_i) => (
+              <SkeletonCard key={_i} lines={2} />
+            ))}
+          </View>
+        ) : error ? (
+          <ErrorState title="Couldn't load topics" message="Please check your connection." onRetry={() => refetch()} />
+        ) : (topics?.length ?? 0) === 0 ? (
+          <EmptyState icon="book-open" title="No topics yet" message="This subject has no topics available yet." />
         ) : (
           <View style={styles.topicList}>
-            {(topics ?? []).map((t) => (
-              <Card key={t.id} elevated={false} style={styles.topicCard}>
-                <Pressable
-                  onPress={() =>
-                    router.push({ pathname: '/practice-session', params: { subjectId: params.subjectId, topicId: t.id, topicName: t.name } })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={t.name}
-                >
-                  <View style={styles.topicRow}>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <AppText variant="label">{t.name}</AppText>
-                      {t.description && (
-                        <AppText variant="small" color="muted">{t.description}</AppText>
-                      )}
+            {(topics ?? []).map((t, idx) => (
+              <FadeInView key={t.id} delay={idx * 40} distance={12}>
+                <GlassCard style={styles.topicCard}>
+                  <Pressable
+                    onPress={() =>
+                      router.push({ pathname: '/practice-session', params: { subjectId: params.subjectId, topicId: t.id, topicName: t.name } })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={t.name}
+                  >
+                    <View style={styles.topicRow}>
+                      <View style={styles.topicIcon}>
+                        <Feather name="layers" size={18} color={colors.primary} />
+                      </View>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <AppText variant="label">{t.name}</AppText>
+                        {t.description && (
+                          <AppText variant="small" color="muted">{t.description}</AppText>
+                        )}
+                      </View>
+                      <Feather name="chevron-right" size={18} color={colors.textMuted} />
                     </View>
-                    <Feather name="chevron-right" size={18} color={colors.textMuted} />
-                  </View>
-                </Pressable>
-              </Card>
+                  </Pressable>
+                </GlassCard>
+              </FadeInView>
             ))}
           </View>
         )}
@@ -83,5 +104,10 @@ const styles = StyleSheet.create({
   section: { gap: 12 },
   topicList: { gap: 8 },
   topicCard: { padding: 0 },
-  topicRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  topicRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  topicIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(99,102,241,0.12)',
+  },
 });

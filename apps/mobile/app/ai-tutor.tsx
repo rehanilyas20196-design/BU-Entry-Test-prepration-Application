@@ -1,11 +1,20 @@
-import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { Feather } from '@expo/vector-icons';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface Message {
   id: string;
@@ -19,6 +28,33 @@ const SUGGESTIONS = [
   'Create a mini study plan',
   'Tips for the BUET',
 ];
+
+function TypingDot({ phase, reduced }: { phase: number; reduced: boolean }) {
+  const p = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    p.value = withRepeat(withTiming(1, { duration: 600, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, [reduced, p]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.3 + Math.abs(Math.sin((p.value + phase) * Math.PI)) * 0.7,
+    transform: [{ translateY: reduced ? 0 : -Math.abs(Math.sin((p.value + phase) * Math.PI)) * 4 }],
+  }));
+
+  return <Animated.View style={[styles.dot, { backgroundColor: '#A5AECB' }, style]} />;
+}
+
+function TypingDots() {
+  const reduced = useReducedMotion();
+  return (
+    <View style={styles.dots}>
+      {[0, 0.33, 0.66].map((phase, i) => (
+        <TypingDot key={i} phase={phase} reduced={reduced} />
+      ))}
+    </View>
+  );
+}
 
 export default function AITutorScreen() {
   const { colors } = useTheme();
@@ -59,9 +95,14 @@ export default function AITutorScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <View style={styles.tutorAvatar}>
-          <Feather name="message-circle" size={20} color={colors.primary} />
-        </View>
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.tutorAvatar}
+        >
+          <Feather name="message-circle" size={20} color="#FFF" />
+        </LinearGradient>
         <View style={{ flex: 1 }}>
           <AppText variant="label">AI Tutor</AppText>
           <AppText variant="small" color="muted">Your personal BUET study assistant</AppText>
@@ -72,9 +113,13 @@ export default function AITutorScreen() {
         ref={scrollRef}
         contentContainerStyle={styles.messages}
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
       >
         {messages.length === 0 && (
           <View style={styles.welcome}>
+            <View style={styles.welcomeIcon}>
+              <Feather name="zap" size={22} color={colors.primary} />
+            </View>
             <AppText variant="body" color="secondary" style={{ textAlign: 'center' }}>
               Ask me anything about your BUET preparation. I explain concepts step-by-step, help with questions, and give hints — without just handing you answers.
             </AppText>
@@ -113,7 +158,7 @@ export default function AITutorScreen() {
 
         {loading && (
           <View style={[styles.bubble, { alignSelf: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color={colors.primary} />
+            <TypingDots />
           </View>
         )}
       </ScrollView>
@@ -132,10 +177,14 @@ export default function AITutorScreen() {
         <Pressable
           onPress={() => send(input)}
           disabled={!input.trim() || loading}
-          style={[styles.sendBtn, { backgroundColor: colors.primary, opacity: !input.trim() || loading ? 0.4 : 1 }]}
+          style={[styles.sendBtn, { opacity: !input.trim() || loading ? 0.4 : 1 }]}
           accessibilityRole="button"
           accessibilityLabel="Send"
         >
+          <LinearGradient
+            colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
+            style={StyleSheet.absoluteFill}
+          />
           <Feather name="send" size={18} color="#FFF" />
         </Pressable>
       </View>
@@ -152,9 +201,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  tutorAvatar: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  tutorAvatar: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
   messages: { padding: 20, gap: 12, flexGrow: 1 },
-  welcome: { gap: 16, paddingVertical: 24 },
+  welcome: { gap: 16, paddingVertical: 24, alignItems: 'center' },
+  welcomeIcon: {
+    width: 52, height: 52, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(99,102,241,0.12)',
+  },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
   bubble: {
@@ -171,5 +228,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   input: { flex: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, maxHeight: 120 },
-  sendBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  dots: { flexDirection: 'row', gap: 5, alignItems: 'center', paddingVertical: 4 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
 });
