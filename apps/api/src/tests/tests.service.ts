@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { PremiumService } from '../premium/premium.service';
 import { StartTestDto, SubmitAnswerDto } from '../common/dto';
 
 @Injectable()
 export class TestsService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly premium: PremiumService,
+  ) {}
 
   async listMockTests() {
     const { data, error } = await this.supabase.admin
@@ -23,6 +27,13 @@ export class TestsService {
 
   /** Start a test attempt: creates attempt + snapshots the question set in order. */
   async startAttempt(userId: string, dto: StartTestDto) {
+    const isHardMock = dto.mode === 'hard_mock';
+
+    // Hard Mock (full practice with hard questions) is a premium feature.
+    if (isHardMock) {
+      await this.premium.requirePremium(userId);
+    }
+
     const { data: mockTest, error: mtErr } = await this.supabase.admin
       .from('mock_tests')
       .select('*')
@@ -43,8 +54,20 @@ export class TestsService {
       throw new BadRequestException('This mock test has no questions configured');
     }
 
-    // Randomize question order in full_mock mode to reduce cheating.
-    const ordered = dto.mode === 'full_mock' ? this.shuffle(questions) : questions;
+    // Hard Mock only includes hard/expert questions for the full-length simulation.
+    let pool = questions;
+    if (isHardMock) {
+      pool = questions.filter((row: any) => {
+        const q = Array.isArray(row.question) ? row.question[0] : row.question;
+        return q?.difficulty === 'hard' || q?.difficulty === 'expert';
+      });
+      if (pool.length === 0) {
+        throw new BadRequestException('This mock test has no hard questions configured');
+      }
+    }
+
+    // Randomize question order in full_mock / hard_mock modes to reduce cheating.
+    const ordered = dto.mode === 'full_mock' || isHardMock ? this.shuffle(pool) : pool;
 
     const { data: attempt, error: aErr } = await this.supabase.admin
       .from('test_attempts')

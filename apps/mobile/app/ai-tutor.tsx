@@ -15,6 +15,8 @@ import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { Feather } from '@expo/vector-icons';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { usePremiumStore } from '@/stores/premiumStore';
+import { PremiumGate } from '@/components/premium/PremiumGate';
 
 interface Message {
   id: string;
@@ -60,6 +62,7 @@ export default function AITutorScreen() {
   const { colors } = useTheme();
   const { questionId } = useLocalSearchParams<{ questionId?: string }>();
   const { show } = useToast();
+  const isPremium = usePremiumStore((s) => s.isPremium);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,6 +91,32 @@ export default function AITutorScreen() {
       setLoading(false);
     }
   };
+
+  if (!isPremium) {
+    return (
+      <View style={[styles.flex, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <LinearGradient
+            colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tutorAvatar}
+          >
+            <Feather name="message-circle" size={20} color="#FFF" />
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <AppText variant="label">AI Tutor</AppText>
+            <AppText variant="small" color="muted">Your personal BUET study assistant</AppText>
+          </View>
+        </View>
+        <PremiumGate
+          feature="Ask the AI Tutor to explain any topic"
+          description="Get step-by-step explanations of any concept, hints, and guided help — exclusive to Premium."
+          icon="school-outline"
+        />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

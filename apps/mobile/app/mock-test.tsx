@@ -37,7 +37,7 @@ export default function MockTestScreen() {
   const session = useAuthStore((s) => s.session);
   const store = useMockTestStore();
 
-  const mode = (params.mode ?? 'practice') as 'practice' | 'timed_practice' | 'full_mock';
+  const mode = (params.mode ?? 'practice') as 'practice' | 'timed_practice' | 'full_mock' | 'hard_mock';
   const [showPalette, setShowPalette] = useState(false);
   const paletteOpen = useSharedValue(0);
 

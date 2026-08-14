@@ -15,6 +15,7 @@ import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { HealthModule } from './health/health.module';
+import { PremiumModule } from './premium/premium.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { HealthModule } from './health/health.module';
     NotificationsModule,
     AnalyticsModule,
     HealthModule,
+    PremiumModule,
   ],
   providers: [
     {

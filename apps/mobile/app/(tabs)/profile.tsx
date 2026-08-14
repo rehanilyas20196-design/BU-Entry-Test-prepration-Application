@@ -25,9 +25,11 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { usePremiumStore } from '@/stores/premiumStore';
 import { Feather } from '@expo/vector-icons';
 import { useToast } from '@/components/ui/Toast';
 import { confirmAction } from '@/lib/confirm';
+import { PremiumCard } from '@/components/dashboard/PremiumCard';
 
 interface Profile {
   full_name: string | null;
@@ -46,6 +48,9 @@ interface Stats {
 }
 
 const STUDY_MENU = [
+  { icon: 'book-open' as const, label: 'Lessons', route: '/(tabs)/learn', gradient: ['#10B981', '#0D9488'] as const },
+  { icon: 'award' as const, label: 'Achievements', route: '/achievements', gradient: ['#F59E0B', '#F97316'] as const },
+  { icon: 'map' as const, label: 'Admission Roadmap', route: '/(tabs)/guide', gradient: ['#0EA5E9', '#6366F1'] as const },
   { icon: 'bookmark' as const, label: 'My Bookmarks', route: '/bookmarks', gradient: ['#F59E0B', '#F97316'] as const },
   { icon: 'alert-circle' as const, label: 'My Mistakes', route: '/mistakes', gradient: ['#E11D48', '#F43F5E'] as const },
   { icon: 'bar-chart-2' as const, label: 'Performance', route: '/performance', gradient: ['#6366F1', '#7C3AED'] as const },
@@ -63,6 +68,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { signOut, session } = useAuthStore();
   const { themePreference, notificationsEnabled, reducedMotion, setThemePreference, setNotificationsEnabled, setReducedMotion } = useSettingsStore();
+  const isPremium = usePremiumStore((s) => s.isPremium);
   const { show } = useToast();
 
   const { data: profile, isLoading } = useQuery({
@@ -192,6 +198,11 @@ export default function ProfileScreen() {
           <Reveal scrollY={scrollY} index={2}>
             <View style={styles.section}>
               <AppText variant="h3">Study</AppText>
+              <PremiumCard
+                onPress={() => router.push('/premium')}
+                title={isPremium ? 'Premium Active' : 'Go Premium'}
+                subtitle={isPremium ? 'All premium features unlocked' : 'Unlock every feature and ace the BUET'}
+              />
               <Float3D phase={0.35}>
               <GlassCard style={styles.menuCard}>
                 {STUDY_MENU.map((item) => (

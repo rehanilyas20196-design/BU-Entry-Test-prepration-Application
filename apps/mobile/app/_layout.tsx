@@ -8,7 +8,9 @@ import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { usePremiumStore } from '@/stores/premiumStore';
 import { useOnboardingStore, hydrateOnboardingStore } from '@/stores/onboardingStore';
+import { hydrateBookmarkTagsStore } from '@/stores/bookmarkTagsStore';
 import { ToastProvider } from '@/components/ui/Toast';
 import { LaunchScreen, isFirstLaunch, markLaunchSeen } from '@/components/launch/LaunchScreen';
 
@@ -26,6 +28,7 @@ export default function RootLayout() {
   const systemScheme = useColorScheme();
   const { session, initialized, initialize } = useAuthStore();
   const hydrate = useSettingsStore((s) => s.hydrate);
+  const hydratePremium = usePremiumStore((s) => s.hydrate);
   const router = useRouter();
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [showLaunch, setShowLaunch] = useState(true);
@@ -34,9 +37,11 @@ export default function RootLayout() {
   useEffect(() => {
     initialize();
     hydrate();
+    hydratePremium();
     hydrateOnboardingStore().then(() => setOnboardingReady(true));
+    void hydrateBookmarkTagsStore();
     void isFirstLaunch().then((first) => setLaunchMs(first ? 2800 : 1300));
-  }, [initialize, hydrate]);
+  }, [initialize, hydrate, hydratePremium]);
 
   useEffect(() => {
     if (!initialized || !onboardingReady || !showLaunch) return;
@@ -80,6 +85,10 @@ export default function RootLayout() {
               <Stack.Screen name="mock-result" />
               <Stack.Screen name="ai-tutor" />
               <Stack.Screen name="question/[id]" />
+              <Stack.Screen name="learn-topics" />
+              <Stack.Screen name="lesson" />
+              <Stack.Screen name="achievements" />
+              <Stack.Screen name="admission/[id]" />
             </Stack>
             {showLaunch && (
               <LaunchScreen

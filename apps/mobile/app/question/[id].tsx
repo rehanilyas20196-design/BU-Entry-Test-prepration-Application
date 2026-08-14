@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Feather } from '@expo/vector-icons';
 import { useToast } from '@/components/ui/Toast';
+import { useBookmarkTagsStore } from '@/stores/bookmarkTagsStore';
 
 interface QuestionDetail {
   id: string;
@@ -34,6 +35,9 @@ export default function QuestionDetailScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { show } = useToast();
+  const { reviewLater, important, toggleReviewLater, toggleImportant } = useBookmarkTagsStore();
+  const isReview = reviewLater.includes(id);
+  const isImportant = important.includes(id);
 
   const { data: question, isLoading } = useQuery({
     queryKey: ['question', id],
@@ -88,6 +92,12 @@ export default function QuestionDetailScreen() {
         <AppText variant="label" style={{ flex: 1 }}>Question Review</AppText>
         <Pressable onPress={toggleBookmark} style={styles.headerBtn} accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark question'}>
           <Feather name="bookmark" size={20} color={bookmarked ? colors.primary : colors.textSecondary} />
+        </Pressable>
+        <Pressable onPress={() => toggleReviewLater(id)} style={styles.headerBtn} accessibilityLabel={isReview ? 'Remove review later' : 'Mark review later'}>
+          <Feather name="flag" size={20} color={isReview ? colors.primary : colors.textSecondary} />
+        </Pressable>
+        <Pressable onPress={() => toggleImportant(id)} style={styles.headerBtn} accessibilityLabel={isImportant ? 'Remove important' : 'Mark important'}>
+          <Feather name="star" size={20} color={isImportant ? colors.warning : colors.textSecondary} />
         </Pressable>
         <Pressable onPress={() => router.push({ pathname: '/ai-tutor', params: { questionId: question.id } })} style={styles.headerBtn} accessibilityLabel="Ask AI about this question">
           <Feather name="message-circle" size={20} color={colors.primary} />

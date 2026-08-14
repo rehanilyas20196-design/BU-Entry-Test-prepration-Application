@@ -4,6 +4,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { AIProvider } from './providers/ai-provider.interface';
 import { OpenAIProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { PremiumService } from '../premium/premium.service';
 import { HintRequestDto, StudyPlanDto, TutorRequestDto } from '../common/dto';
 
 const TUTOR_SYSTEM = `You are the BUET Prep AI tutor, an expert educational assistant helping students prepare for the Bahria University Entry Test.
@@ -28,6 +29,7 @@ export class AIService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
+    private readonly premium: PremiumService,
     openAI: OpenAIProvider,
     gemini: GeminiProvider,
   ) {
@@ -75,6 +77,7 @@ export class AIService {
   // ============ Tutor ============
 
   async tutor(userId: string, dto: TutorRequestDto) {
+    await this.premium.requirePremium(userId);
     if (!(await this.checkQuota(userId))) {
       throw new UnauthorizedException('Daily AI limit reached. Try again tomorrow.');
     }
@@ -111,6 +114,7 @@ export class AIService {
   // ============ Hint ============
 
   async getHint(userId: string, dto: HintRequestDto) {
+    await this.premium.requirePremium(userId);
     if (!(await this.checkQuota(userId))) {
       throw new UnauthorizedException('Daily AI limit reached.');
     }
@@ -137,6 +141,7 @@ export class AIService {
   // ============ Similar question generation ============
 
   async generateSimilarQuestion(userId: string, questionId: string) {
+    await this.premium.requirePremium(userId);
     const { data: q } = await this.supabase.admin
       .from('questions')
       .select('question_text, topic_id, topic:topics(name), subject:subjects(name), difficulty')
@@ -174,6 +179,7 @@ Return JSON: {"question":"...","options":["a","b","c","d"],"correct_index":0,"ex
   // ============ Study plan ============
 
   async generateStudyPlan(userId: string, dto: StudyPlanDto) {
+    await this.premium.requirePremium(userId);
     const { data: profile } = await this.supabase.admin
       .from('profiles')
       .select('program:programs(name), preparation_level')

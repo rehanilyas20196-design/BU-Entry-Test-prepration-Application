@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export interface MockTestState {
   attemptId: string | null;
-  mode: 'practice' | 'timed_practice' | 'full_mock';
+  mode: 'practice' | 'timed_practice' | 'full_mock' | 'hard_mock';
   questions: { order: number; question: MockTestQuestion }[];
   answers: Record<number, string>;
   markedForReview: Set<number>;

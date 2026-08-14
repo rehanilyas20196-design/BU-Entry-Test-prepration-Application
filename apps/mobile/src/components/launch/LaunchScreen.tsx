@@ -89,9 +89,10 @@ export function LaunchScreen({ onDone, minimumMs }: LaunchScreenProps) {
       <SafeAreaView style={styles.safe}>
         <View style={styles.top} />
         <View style={styles.center}>
+          <AppText variant="h2" style={styles.brand}>BUET Prep AI</AppText>
           <Animated.View style={[styles.logoWrap, logoStyle]}>
             <Image
-              source={require('../../../assets/app-logo.jpg')}
+              source={require('../../../assets/launch-logo.png')}
               style={styles.logo}
               resizeMode="cover"
             />
@@ -129,7 +130,15 @@ export function LaunchScreen({ onDone, minimumMs }: LaunchScreenProps) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   top: { height: 48 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 26 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 },
+  brand: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
   logoWrap: {
     width: 116, height: 116, borderRadius: 30,
     alignItems: 'center', justifyContent: 'center',

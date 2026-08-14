@@ -31,7 +31,7 @@ export class RecordAnswerDto {
 
 export class StartTestDto {
   @IsString() @IsNotEmpty() mock_test_id: string;
-  @IsOptional() @IsIn(['practice', 'timed_practice', 'full_mock']) mode?: string;
+  @IsOptional() @IsIn(['practice', 'timed_practice', 'full_mock', 'hard_mock']) mode?: string;
 }
 
 export class SubmitAnswerDto {

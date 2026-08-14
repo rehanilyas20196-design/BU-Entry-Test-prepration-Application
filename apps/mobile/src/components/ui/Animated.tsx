@@ -9,6 +9,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 
@@ -71,6 +72,7 @@ interface AnimatedProgressBarProps {
   progress: number; // 0..1
   height?: number;
   color?: string;
+  gradient?: readonly [string, string, ...string[]];
   trackColor?: string;
   delay?: number;
   style?: object;
@@ -80,6 +82,7 @@ export function AnimatedProgressBar({
   progress,
   height = 8,
   color,
+  gradient,
   trackColor,
   delay = 100,
   style,
@@ -98,7 +101,7 @@ export function AnimatedProgressBar({
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: `${width.value * 100}%`,
-    backgroundColor: color ?? colors.primary,
+    backgroundColor: gradient ? undefined : color ?? colors.primary,
   }));
 
   return (
@@ -111,7 +114,16 @@ export function AnimatedProgressBar({
         style,
       ]}
     >
-      <Animated.View style={[styles.fill, animatedStyle]} />
+      <Animated.View style={[styles.fill, animatedStyle]}>
+        {gradient ? (
+          <LinearGradient
+            colors={[...gradient] as [string, string, ...string[]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
+      </Animated.View>
     </View>
   );
 }

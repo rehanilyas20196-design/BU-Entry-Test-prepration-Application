@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { PremiumService } from '../premium/premium.service';
 
 export interface PracticeQuery {
   subject_id?: string;
@@ -12,7 +13,10 @@ export interface PracticeQuery {
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly premium: PremiumService,
+  ) {}
 
   /** Fetch a page of approved questions (RLS ensures only approved are returned). */
   async list(params: { subject_id?: string; topic_id?: string; difficulty?: string; page?: number; page_size?: number; q?: string }) {
@@ -54,6 +58,12 @@ export class QuestionsService {
   /** Random selection of approved questions for practice sessions. */
   async getPracticeSet(userId: string, query: PracticeQuery) {
     const limit = Math.min(query.limit ?? 20, 50);
+
+    // Hard Mode is a premium feature.
+    if (query.difficulty === 'hard' || query.difficulty === 'expert') {
+      await this.premium.requirePremium(userId);
+    }
+
     let builder = this.supabase.admin
       .from('questions')
       .select('id')

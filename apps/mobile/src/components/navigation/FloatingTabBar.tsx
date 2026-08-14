@@ -17,8 +17,10 @@ import { radius } from '@/theme/theme';
 
 const TABS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
   index: { icon: 'home', label: 'Home' },
+  learn: { icon: 'book-open', label: 'Learn' },
   practice: { icon: 'edit-3', label: 'Practice' },
   mock: { icon: 'clipboard', label: 'Mock' },
+  guide: { icon: 'map', label: 'Guide' },
   profile: { icon: 'user', label: 'Profile' },
 };
 

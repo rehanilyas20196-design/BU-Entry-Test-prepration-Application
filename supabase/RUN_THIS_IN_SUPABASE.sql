@@ -21,7 +21,7 @@ do $$ begin create type "public"."source_type" as enum ('OFFICIAL_BU_SOURCE','OR
 do $$ begin create type "public"."copyright_status" as enum ('original','official_sample','reference_based'); exception when duplicate_object then null; end $$;
 do $$ begin create type "public"."user_role" as enum ('student','admin','content_editor'); exception when duplicate_object then null; end $$;
 do $$ begin create type "public"."preparation_level" as enum ('beginner','intermediate','advanced'); exception when duplicate_object then null; end $$;
-do $$ begin create type "public"."test_mode" as enum ('practice','timed_practice','full_mock'); exception when duplicate_object then null; end $$;
+do $$ begin create type "public"."test_mode" as enum ('practice','timed_practice','full_mock','hard_mock'); exception when duplicate_object then null; end $$;
 do $$ begin create type "public"."attempt_status" as enum ('in_progress','submitted','expired','abandoned'); exception when duplicate_object then null; end $$;
 do $$ begin create type "public"."plan_status" as enum ('active','completed','archived'); exception when duplicate_object then null; end $$;
 do $$ begin create type "public"."report_status" as enum ('open','resolved','dismissed'); exception when duplicate_object then null; end $$;
@@ -449,9 +449,12 @@ create table if not exists "public"."profiles" (
   timezone text,
   avatar_url text,
   onboarded boolean not null default false,
+  is_premium boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index if not exists idx_profiles_premium on "public"."profiles"(is_premium);
 
 create table if not exists "public"."admin_users" (
   id uuid primary key default gen_random_uuid(),

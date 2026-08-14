@@ -82,7 +82,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     throw new ApiClientError(res.status, 'You are not authorized. Please sign in again.');
   }
   if (!res.ok) {

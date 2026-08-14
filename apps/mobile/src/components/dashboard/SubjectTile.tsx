@@ -1,34 +1,33 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/ui/AppText';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { Subject3DIcon } from '@/components/ui/Subject3DIcon';
+import { GlassPanel } from '@/components/ui/GlassPanel';
 import { useTheme } from '@/hooks/useTheme';
+import { accents, type AccentColor } from '@/theme/tokens';
 
 export interface SubjectTileConfig {
-  icon: keyof typeof Feather.glyphMap;
-  emoji: string;
-  gradient: readonly [string, string, ...string[]];
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  accent: AccentColor;
 }
 
 const DEFAULT_CONFIG: SubjectTileConfig = {
-  icon: 'book-open',
-  emoji: '📖',
-  gradient: ['#6366F1', '#7C3AED', '#A855F7'],
+  icon: 'book-open-variant',
+  accent: accents.indigo,
 };
 
 export function subjectConfig(name: string): SubjectTileConfig {
   const n = name.toLowerCase();
-  if (n.includes('english') || n.includes('verbal')) return { icon: 'message-square', emoji: '📚', gradient: ['#0EA5E9', '#6366F1'] };
-  if (n.includes('math')) return { icon: 'hash', emoji: '🧮', gradient: ['#6366F1', '#7C3AED', '#A855F7'] };
-  if (n.includes('phys')) return { icon: 'zap', emoji: '⚡', gradient: ['#F59E0B', '#F97316'] };
-  if (n.includes('chem')) return { icon: 'droplet', emoji: '🧪', gradient: ['#10B981', '#059669'] };
-  if (n.includes('bio')) return { icon: 'activity', emoji: '🧬', gradient: ['#EC4899', '#DB2777'] };
-  if (n.includes('iq') || n.includes('intel')) return { icon: 'cpu', emoji: '🧠', gradient: ['#8B5CF6', '#D946EF'] };
-  if (n.includes('analyt') || n.includes('reason')) return { icon: 'git-branch', emoji: '🧩', gradient: ['#06B6D4', '#0891B2'] };
-  if (n.includes('islam')) return { icon: 'moon', emoji: '🕌', gradient: ['#10B981', '#0D9488'] };
-  if (n.includes('pakist') || n.includes('general')) return { icon: 'globe', emoji: '🌍', gradient: ['#3B82F6', '#2563EB'] };
+  if (n.includes('english') || n.includes('verbal')) return { icon: 'message-text-outline', accent: accents.indigo };
+  if (n.includes('quant')) return { icon: 'chart-line', accent: accents.teal };
+  if (n.includes('math')) return { icon: 'sigma', accent: accents.violet };
+  if (n.includes('phys')) return { icon: 'lightning-bolt-outline', accent: accents.amber };
+  if (n.includes('chem')) return { icon: 'flask-outline', accent: accents.emerald };
+  if (n.includes('bio')) return { icon: 'dna', accent: accents.pink };
+  if (n.includes('iq') || n.includes('intel')) return { icon: 'brain', accent: accents.cyan };
+  if (n.includes('analyt') || n.includes('reason')) return { icon: 'source-branch', accent: accents.blue };
+  if (n.includes('islam')) return { icon: 'moon-waning-crescent', accent: accents.teal };
+  if (n.includes('pakist') || n.includes('general')) return { icon: 'earth', accent: accents.blue };
   return DEFAULT_CONFIG;
 }
 
@@ -44,6 +43,7 @@ export function SubjectTile({ name, questionCount, accuracy, onPress, style }: S
   const { colors } = useTheme();
   const cfg = subjectConfig(name);
   const hasAccuracy = accuracy != null;
+  const iconColor = colors.isDark ? cfg.accent.soft : cfg.accent.main;
 
   return (
     <Pressable
@@ -52,42 +52,47 @@ export function SubjectTile({ name, questionCount, accuracy, onPress, style }: S
       accessibilityLabel={name}
       style={({ pressed }) => [styles.press, pressed && styles.pressed, style]}
     >
-      <GlassCard gradient={cfg.gradient} style={styles.card}>
+      <GlassPanel
+        accent={[cfg.accent.soft, cfg.accent.main]}
+        accentOpacity={0.22}
+        radius={20}
+        style={styles.card}
+      >
         <View style={styles.cardInner}>
-          <View style={styles.iconCircle}>
-            <Subject3DIcon emoji={cfg.emoji} />
+          <View style={[styles.iconCircle, { borderColor: colors.isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.6)' }]}>
+            <MaterialCommunityIcons name={cfg.icon} size={20} color={iconColor} />
           </View>
           <AppText variant="label" style={styles.name} numberOfLines={2}>
             {name}
           </AppText>
-          <AppText variant="micro" style={styles.count}>
+          <AppText variant="micro" color="muted" style={styles.count}>
             {questionCount} questions
           </AppText>
           {hasAccuracy && (
             <View style={styles.accuracy}>
-              <View style={[styles.accuracyDot, { backgroundColor: colors.glass }]} />
-              <AppText variant="micro" style={styles.count}>{Math.round(accuracy)}% accuracy</AppText>
+              <View style={[styles.accuracyDot, { backgroundColor: iconColor }]} />
+              <AppText variant="micro" color="muted" style={styles.count}>{Math.round(accuracy)}% accuracy</AppText>
             </View>
           )}
         </View>
-      </GlassCard>
+      </GlassPanel>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  press: { borderRadius: 16, width: 158 },
-  pressed: { transform: [{ scale: 0.97 }], opacity: 0.94 },
-  card: { padding: 14, height: 150, justifyContent: 'space-between' },
-  cardInner: { gap: 6 },
+  press: { borderRadius: 20, width: 158 },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.96 },
+  card: { height: 150, justifyContent: 'center' },
+  cardInner: { flex: 1, justifyContent: 'space-between', gap: 6, padding: 14 },
   iconCircle: {
     width: 44, height: 44, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  name: { color: '#FFF', marginTop: 6 },
-  count: { color: 'rgba(255,255,255,0.82)' },
+  name: { marginTop: 4 },
+  count: { fontWeight: '500' },
   accuracy: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   accuracyDot: { width: 6, height: 6, borderRadius: 3 },
 });

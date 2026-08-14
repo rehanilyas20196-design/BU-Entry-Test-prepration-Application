@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { AnimatedProgressBar } from '@/components/ui/Animated';
+import { Timer } from '@/components/ui/Timer';
 import { QuestionCard, PracticeQuestion } from '@/components/question/QuestionCard';
 import { SkeletonCard } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -34,7 +35,18 @@ interface PracticeResponse {
 export default function PracticeSessionScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ subjectId: string; topicId?: string; topicName?: string; smartRetry?: string; similarTo?: string }>();
+  const params = useLocalSearchParams<{
+    subjectId: string;
+    topicId?: string;
+    topicName?: string;
+    smartRetry?: string;
+    similarTo?: string;
+    limit?: string;
+    difficulty?: string;
+    excludeAnswered?: string;
+    mode?: string;
+    title?: string;
+  }>();
   const { show } = useToast();
   const session = useAuthStore((s) => s.session);
 
@@ -46,10 +58,16 @@ export default function PracticeSessionScreen() {
   const [hintLoading, setHintLoading] = useState(false);
   const questionStart = useRef(Date.now());
 
+  const limit = Math.min(Number(params.limit) || 20, 50);
+  const isSpeed = params.mode === 'speed';
+  const SPEED_SECONDS = 30;
+
   const queryParams = [
-    `limit=20`,
+    `limit=${limit}`,
     params.subjectId && `subject_id=${params.subjectId}`,
     params.topicId && `topic_id=${params.topicId}`,
+    params.difficulty && `difficulty=${params.difficulty}`,
+    params.excludeAnswered === '1' && `exclude_answered=true`,
   ]
     .filter(Boolean)
     .join('&');
@@ -67,12 +85,18 @@ export default function PracticeSessionScreen() {
   };
 
   const { data: questions, isLoading, error, refetch } = useQuery({
-    queryKey: ['practice-set', params.subjectId, params.topicId, params.smartRetry, params.similarTo],
+    queryKey: ['practice-set', params.subjectId, params.topicId, params.smartRetry, params.similarTo, params.limit, params.difficulty, params.excludeAnswered],
     queryFn: fetchQuestions,
     enabled: !!session,
   });
 
   const question = questions?.[index];
+
+  const handleSpeedTimeout = () => {
+    if (index < (questions?.length ?? 1) - 1) {
+      setIndex(index + 1);
+    }
+  };
 
   const { data: bookmarkData } = useQuery({
     queryKey: ['bookmarked', question?.id],
@@ -113,7 +137,7 @@ export default function PracticeSessionScreen() {
         selected_option: option.key,
         is_correct: correct,
         time_spent_seconds: timeSpent,
-        mode: 'practice',
+        mode: params.mode ?? 'practice',
       });
     } catch {
       // offline — answer still recorded locally via retry queue in production
@@ -219,15 +243,27 @@ export default function PracticeSessionScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Exit practice">
           <Feather name="x" size={22} color={colors.text} />
         </Pressable>
-        <View style={styles.progressWrap}>
-          <View style={styles.progressTop}>
-            <AppText variant="label" color="secondary">
-              {index + 1} / {questions.length}
-            </AppText>
-            <AppText variant="micro" color="muted">{params.topicName ?? 'Practice'}</AppText>
+<View style={styles.progressWrap}>
+            <View style={styles.progressTop}>
+              <AppText variant="label" color="secondary">
+                {index + 1} / {questions.length}
+              </AppText>
+              <AppText variant="micro" color="muted">{params.title ?? params.topicName ?? 'Practice'}</AppText>
+            </View>
+            <AnimatedProgressBar progress={progress} height={5} delay={0} />
+            {isSpeed && question && (
+              <View style={styles.timerRow}>
+                <Timer
+                  key={question.id}
+                  totalSeconds={SPEED_SECONDS}
+                  warningAt={10}
+                  paused={answered}
+                  onExpire={handleSpeedTimeout}
+                />
+                <AppText variant="micro" color="muted">Answer before time runs out</AppText>
+              </View>
+            )}
           </View>
-          <AnimatedProgressBar progress={progress} height={5} delay={0} />
-        </View>
         <Pressable onPress={handleBookmark} style={styles.headerBtn} accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark question'}>
           <Feather name="bookmark" size={22} color={bookmarked ? colors.primary : colors.textSecondary} />
         </Pressable>
@@ -315,6 +351,7 @@ const styles = StyleSheet.create({
   headerBtn: { padding: 4 },
   progressWrap: { flex: 1, gap: 6 },
   progressTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  timerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   body: { padding: 20, paddingBottom: 24 },
   resultBanner: {
     flexDirection: 'row',

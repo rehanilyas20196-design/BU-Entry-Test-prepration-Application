@@ -24,6 +24,7 @@ interface ProgressRingProps {
   label?: string;
   sublabel?: string;
   gradient?: readonly [string, string, ...string[]];
+  glow?: boolean;
   children?: React.ReactNode;
   style?: ViewStyle;
 }
@@ -36,6 +37,7 @@ export function ProgressRing({
   label,
   sublabel,
   gradient,
+  glow = false,
   children,
   style,
 }: ProgressRingProps) {
@@ -95,6 +97,21 @@ export function ProgressRing({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
+        {glow && (
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="url(#ring-gradient)"
+            strokeWidth={strokeWidth + 5}
+            fill="transparent"
+            opacity={0.22}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            animatedProps={animatedProps}
+          />
+        )}
         <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
