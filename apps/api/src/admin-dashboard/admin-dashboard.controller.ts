@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminAuthGuard, AdminRequest } from './admin-auth.guard';
+import { Public } from './admin-public.decorator';
 import { AdminDashboardService } from './admin-dashboard.service';
 import {
   AdminLoginDto,
@@ -34,6 +35,7 @@ export class AdminDashboardController {
 
   // ---- Auth ----
 
+  @Public()
   @Post('auth/login')
   login(@Body() dto: AdminLoginDto) {
     return this.service.login(dto.email, dto.password);
