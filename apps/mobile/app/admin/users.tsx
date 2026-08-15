@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { adminApi } from '@/admin/adminApi';
+import { adminApi, downloadCsv } from '@/admin/adminApi';
 import { AdminShell } from '@/admin/components/AdminShell';
 import {
   AdminBadge,
+  AdminButton,
   AdminColumn,
   AdminDataTable,
   AdminLoader,
@@ -139,6 +140,9 @@ export default function AdminUsersScreen() {
             ]}
           />
         </View>
+        <View style={styles.exportCol}>
+          <AdminButton title="Export CSV" variant="secondary" icon="download" onPress={() => downloadCsv('/admin-dash/export/users', 'users.csv').catch((e: any) => alert(e?.message ?? 'Export failed'))} />
+        </View>
       </View>
 
       {isLoading ? (
@@ -173,6 +177,9 @@ const styles = StyleSheet.create({
   },
   filterCol: {
     width: 150,
+    marginBottom: 12,
+  },
+  exportCol: {
     marginBottom: 12,
   },
   primaryCell: {

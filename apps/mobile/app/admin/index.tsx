@@ -22,7 +22,11 @@ interface Stats {
   signups_today: number;
   signups_this_week: number;
   payments_today: number;
+  revenue_today: number;
   tests_today: number;
+  questions_answered_today: number;
+  xp_earned_today: number;
+  active_users_today: number;
 }
 
 interface ActivityItem {
@@ -55,16 +59,31 @@ export default function AdminDashboardScreen() {
     { label: 'Total Questions', value: stats.data?.total_questions ?? 0, icon: 'help-circle' as const, tone: 'info' as const },
   ];
 
+  const digest = [
+    { label: 'Revenue today', value: `${stats.data?.revenue_today ?? 0} BDT`, icon: 'dollar-sign' as const, tone: 'success' as const },
+    { label: 'Active users today', value: stats.data?.active_users_today ?? 0, icon: 'activity' as const, tone: 'primary' as const },
+    { label: 'Questions answered', value: stats.data?.questions_answered_today ?? 0, icon: 'check-circle' as const, tone: 'info' as const },
+    { label: 'XP earned today', value: stats.data?.xp_earned_today ?? 0, icon: 'zap' as const, tone: 'warning' as const },
+  ];
+
   return (
     <AdminShell title="Dashboard" active="dashboard">
       {stats.isLoading ? (
         <AdminLoader />
       ) : (
-        <View style={styles.statGrid}>
-          {cards.map((c) => (
-            <AdminStatCard key={c.label} {...c} />
-          ))}
-        </View>
+        <>
+          <View style={styles.statGrid}>
+            {cards.map((c) => (
+              <AdminStatCard key={c.label} {...c} />
+            ))}
+          </View>
+          <AdminTitle>Today's digest</AdminTitle>
+          <View style={styles.statGrid}>
+            {digest.map((c) => (
+              <AdminStatCard key={c.label} {...c} />
+            ))}
+          </View>
+        </>
       )}
 
       <View style={styles.quickRow}>

@@ -25,6 +25,7 @@ interface PremiumState {
   hydrate: () => Promise<void>;
   checkStatus: () => Promise<boolean>;
   verifyPayment: (trxId: string, senderPhone?: string) => Promise<{ success: boolean; message?: string }>;
+  redeemCoupon: (code: string) => Promise<{ success: boolean; message?: string }>;
   purchase: () => Promise<boolean>;
 }
 
@@ -133,6 +134,36 @@ export const usePremiumStore = create<PremiumState>((set, get) => ({
       });
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ isPremium: true }));
       return { success: true, message: 'Payment recorded! Premium access granted.' };
+    }
+  },
+
+  redeemCoupon: async (code: string) => {
+    try {
+      const { api } = await import('@/lib/api');
+      const res = await api.post<{
+        success: boolean;
+        message: string;
+        is_premium: boolean;
+        amount_paid: number;
+      }>('/premium/coupon/redeem', { code });
+
+      if (res?.success || res?.is_premium) {
+        set({
+          isPremium: true,
+          initialized: true,
+          latestPayment: {
+            trx_id: `COUPON-${code.toUpperCase()}`,
+            amount: res.amount_paid ?? 0,
+            till_id: 'COUPON',
+            shop_name: `Coupon ${code.toUpperCase()}`,
+          },
+        });
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ isPremium: true }));
+        return { success: true, message: res?.message || 'Coupon applied! Premium access granted.' };
+      }
+      return { success: false, message: 'Coupon could not be applied.' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Invalid or expired coupon code.' };
     }
   },
 

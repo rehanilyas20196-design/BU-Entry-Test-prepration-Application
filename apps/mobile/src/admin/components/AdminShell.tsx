@@ -11,6 +11,9 @@ export type AdminTab =
   | 'tests'
   | 'questions'
   | 'premium'
+  | 'catalog'
+  | 'announcements'
+  | 'coupons'
   | 'analytics'
   | 'activity';
 
@@ -20,6 +23,9 @@ const NAV: { tab: AdminTab; label: string; icon: keyof typeof Feather.glyphMap; 
   { tab: 'tests', label: 'Tests', icon: 'clipboard', href: '/admin/tests' },
   { tab: 'questions', label: 'Questions', icon: 'help-circle', href: '/admin/questions' },
   { tab: 'premium', label: 'Premium', icon: 'star', href: '/admin/premium' },
+  { tab: 'catalog', label: 'Catalog', icon: 'book-open', href: '/admin/catalog' },
+  { tab: 'announcements', label: 'Announce', icon: 'send', href: '/admin/announcements' },
+  { tab: 'coupons', label: 'Coupons', icon: 'tag', href: '/admin/coupons' },
   { tab: 'analytics', label: 'Analytics', icon: 'bar-chart-2', href: '/admin/analytics' },
   { tab: 'activity', label: 'Activity', icon: 'list', href: '/admin/activity' },
 ];

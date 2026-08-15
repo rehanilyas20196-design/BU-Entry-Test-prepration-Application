@@ -66,6 +66,9 @@ export default function AdminLayout() {
       <Stack.Screen name="tests" />
       <Stack.Screen name="questions" />
       <Stack.Screen name="premium" />
+      <Stack.Screen name="catalog" />
+      <Stack.Screen name="announcements" />
+      <Stack.Screen name="coupons" />
       <Stack.Screen name="analytics" />
       <Stack.Screen name="activity" />
     </Stack>

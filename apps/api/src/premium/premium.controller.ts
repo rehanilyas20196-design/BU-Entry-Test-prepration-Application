@@ -27,4 +27,10 @@ export class PremiumController {
   activate(@CurrentUser('id') userId: string) {
     return this.premium.activate(userId);
   }
+
+  /** Redeems an admin-issued coupon code and unlocks Premium. */
+  @Post('coupon/redeem')
+  redeem(@CurrentUser('id') userId: string, @Body() body: { code?: string }) {
+    return this.premium.redeemCoupon(userId, body?.code ?? '');
+  }
 }

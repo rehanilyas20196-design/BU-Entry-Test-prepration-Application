@@ -36,3 +36,54 @@ export class UpdateQuestionDto {
 export class ImportQuestionsDto {
   @IsString() @IsNotEmpty() csv: string;
 }
+
+export class CreateCouponDto {
+  @IsString() @IsNotEmpty() @MaxLength(40) code: string;
+  @IsString() @IsNotEmpty() discount_type: 'full' | 'percent' | 'flat';
+  @IsOptional() discount_value?: number;
+  @IsOptional() max_uses?: number | null;
+  @IsOptional() expires_at?: string | null;
+}
+
+export class ToggleDto {
+  @IsOptional() is_active?: boolean;
+}
+
+export class CreateAnnouncementDto {
+  @IsString() @IsNotEmpty() @MaxLength(200) title: string;
+  @IsOptional() @IsString() @MaxLength(2000) body?: string;
+  @IsOptional() @IsString() type?: string;
+}
+
+export class CreateSubjectDto {
+  @IsString() @IsNotEmpty() code: string;
+  @IsString() @IsNotEmpty() name: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() sort_order?: number;
+}
+
+export class CreateTopicDto {
+  @IsString() @IsNotEmpty() subject_id: string;
+  @IsString() @IsNotEmpty() name: string;
+  @IsOptional() @IsString() description?: string;
+}
+
+export class CreateProgramDto {
+  @IsString() @IsNotEmpty() university_id: string;
+  @IsString() @IsNotEmpty() code: string;
+  @IsString() @IsNotEmpty() name: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() campus?: string;
+}
+
+export class UpdateCatalogDto {
+  @IsOptional() @IsString() code?: string;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() sort_order?: number;
+  @IsOptional() @IsString() subject_id?: string;
+  @IsOptional() @IsString() university_id?: string;
+  @IsOptional() @IsString() campus?: string;
+}

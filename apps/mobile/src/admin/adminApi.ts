@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 // Same base-URL resolution as the user-facing API client, but kept fully
 // independent so the admin token never mixes with the user session token.
@@ -91,5 +91,29 @@ export const adminApi = {
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
+
+/** Downloads a CSV export. On web it triggers a file download; on native it shares the content. */
+export async function downloadCsv(path: string, filename: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { Authorization: adminToken ? `Bearer ${adminToken}` : '' },
+  });
+  if (!res.ok) {
+    throw new AdminApiError(res.status, 'Export failed');
+  }
+  const text = await res.text();
+  if (Platform.OS === 'web') {
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } else {
+    await Share.share({ message: text });
+  }
+}
 
 export { BASE_URL };

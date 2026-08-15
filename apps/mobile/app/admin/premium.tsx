@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { adminApi } from '@/admin/adminApi';
+import { adminApi, downloadCsv } from '@/admin/adminApi';
 import { AdminShell } from '@/admin/components/AdminShell';
 import {
   AdminBadge,
+  AdminButton,
   AdminCard,
   AdminColumn,
   AdminDataTable,
@@ -105,6 +106,11 @@ export default function AdminPremiumScreen() {
         style={{ marginBottom: 12 }}
       />
 
+      <View style={styles.exportRow}>
+        <AdminButton title="Export CSV" variant="secondary" icon="download" onPress={() => downloadCsv('/admin-dash/export/payments', 'payments.csv').catch((e: any) => alert(e?.message ?? 'Export failed'))} />
+        <Text style={styles.totalText}>{data?.total ?? 0} total payments</Text>
+      </View>
+
       {isLoading ? (
         <AdminLoader />
       ) : (
@@ -125,6 +131,8 @@ const styles = StyleSheet.create({
   infoCard: { backgroundColor: adminColors.infoLight, borderColor: adminColors.infoLight },
   infoText: { fontSize: 13, color: adminColors.textSecondary, lineHeight: 19 },
   infoLink: { color: adminColors.primary, fontWeight: '700' },
+  exportRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  totalText: { fontSize: 13, color: adminColors.textMuted },
   primary: { fontSize: 13, fontWeight: '600', color: adminColors.text },
   secondary: { fontSize: 11, color: adminColors.textMuted, marginTop: 2 },
   cell: { fontSize: 13, color: adminColors.text },

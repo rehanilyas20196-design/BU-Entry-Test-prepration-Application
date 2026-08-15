@@ -50,11 +50,14 @@ export default function PremiumScreen() {
   const latestPayment = usePremiumStore((s) => s.latestPayment);
   const verifyPayment = usePremiumStore((s) => s.verifyPayment);
   const checkStatus = usePremiumStore((s) => s.checkStatus);
+  const redeemCoupon = usePremiumStore((s) => s.redeemCoupon);
 
   const [trxId, setTrxId] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   useEffect(() => {
     checkStatus().catch(() => {});
@@ -96,6 +99,29 @@ export default function PremiumScreen() {
       show(err.message || 'An error occurred during verification', 'error');
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleRedeemCoupon = async () => {
+    if (!couponCode.trim()) {
+      show('Please enter your coupon code', 'error');
+      return;
+    }
+    setIsRedeeming(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    try {
+      const res = await redeemCoupon(couponCode.trim());
+      if (res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        show(res.message || 'Coupon applied! Premium unlocked.', 'success');
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        show(res.message || 'Coupon could not be applied', 'error');
+      }
+    } catch (err: any) {
+      show(err?.message || 'Coupon could not be applied', 'error');
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -413,6 +439,61 @@ export default function PremiumScreen() {
                     <MaterialCommunityIcons name="lock-outline" size={12} color={colors.textMuted} />{' '}
                     Instant automatic verification upon entering valid transaction details.
                   </AppText>
+
+                  <View style={styles.couponDivider} />
+
+                  <View style={styles.formSection}>
+                    <AppText variant="label" style={{ color: colors.text }}>
+                      Have a coupon code?
+                    </AppText>
+                    <AppText variant="micro" color="muted" style={{ marginTop: 2 }}>
+                      Enter a promo code to unlock Premium without paying.
+                    </AppText>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+                          color: colors.text,
+                          borderColor: colors.isDark ? 'rgba(255,255,255,0.15)' : '#D1D5DB',
+                        },
+                      ]}
+                      placeholder="e.g. BUET25"
+                      placeholderTextColor={colors.textMuted}
+                      value={couponCode}
+                      onChangeText={setCouponCode}
+                      autoCapitalize="characters"
+                      accessibilityLabel="Coupon code"
+                    />
+                    <Pressable
+                      onPress={handleRedeemCoupon}
+                      disabled={isRedeeming}
+                      accessibilityRole="button"
+                      accessibilityLabel="Redeem coupon"
+                      style={({ pressed }) => [
+                        styles.buyButton,
+                        pressed && styles.buyPressed,
+                        isRedeeming && { opacity: 0.7 },
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={['#10B981', '#059669', '#047857'] as [string, string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      {isRedeeming ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <>
+                          <MaterialCommunityIcons name="ticket-percent" size={20} color="#FFFFFF" />
+                          <AppText variant="label" style={styles.buyText}>
+                            Redeem Coupon
+                          </AppText>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
                 </View>
               </GlassPanel>
 
@@ -599,6 +680,11 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(120,120,140,0.25)',
     marginVertical: 6,
+  },
+  couponDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(120,120,140,0.25)',
+    marginVertical: 16,
   },
 
   stepsList: { gap: 10, marginVertical: 4 },

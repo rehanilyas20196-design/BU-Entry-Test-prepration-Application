@@ -10,9 +10,24 @@ import * as jwt from 'jsonwebtoken';
 import { parse } from 'csv-parse/sync';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AdminPrincipal } from './admin-auth.guard';
-import { CreateQuestionDto, UpdateQuestionDto } from './admin-dashboard.dto';
+import {
+  CreateQuestionDto,
+  UpdateCatalogDto,
+  UpdateQuestionDto,
+} from './admin-dashboard.dto';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'];
+
+function toCsv(headers: (string | number)[], rows: (string | number | null | undefined)[][]): string {
+  const esc = (v: string | number | null | undefined) => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.map(esc).join(',')];
+  for (const row of rows) lines.push(row.map(esc).join(','));
+  return lines.join('\n');
+}
 
 @Injectable()
 export class AdminDashboardService {
@@ -93,16 +108,18 @@ export class AdminDashboardService {
     const signupsToday = users.filter((u) => new Date(u.created_at) >= startToday).length;
     const signupsThisWeek = users.filter((u) => new Date(u.created_at) >= startWeek).length;
 
-    const { count: paymentsToday } = await this.supabase.admin
-      .from('payments')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', startToday.toISOString());
+    const [paymentsTodayRows, testsToday, questionsTodayRows, xpTodayRows, activeTodayRows] = await Promise.all([
+      this.supabase.admin.from('payments').select('amount').gte('created_at', startToday.toISOString()),
+      this.supabase.admin.from('test_attempts').select('id', { count: 'exact', head: true }).not('submitted_at', 'is', null).gte('submitted_at', startToday.toISOString()),
+      this.supabase.admin.from('user_progress').select('id').gte('created_at', startToday.toISOString()),
+      this.supabase.admin.from('xp_events').select('amount').gte('created_at', startToday.toISOString()),
+      this.supabase.admin.from('user_progress').select('user_id').gte('created_at', startToday.toISOString()),
+    ]);
 
-    const { count: testsToday } = await this.supabase.admin
-      .from('test_attempts')
-      .select('id', { count: 'exact', head: true })
-      .not('submitted_at', 'is', null)
-      .gte('submitted_at', startToday.toISOString());
+    const paymentsToday = paymentsTodayRows.data ?? [];
+    const revenueToday = paymentsToday.reduce((acc: number, p: any) => acc + Number(p.amount ?? 0), 0);
+    const xpToday = (xpTodayRows.data ?? []).reduce((acc: number, x: any) => acc + Number(x.amount ?? 0), 0);
+    const activeUsersToday = new Set((activeTodayRows.data ?? []).map((a: any) => a.user_id)).size;
 
     return {
       total_users: totalUsers ?? 0,
@@ -111,8 +128,12 @@ export class AdminDashboardService {
       total_questions: totalQuestions ?? 0,
       signups_today: signupsToday,
       signups_this_week: signupsThisWeek,
-      payments_today: paymentsToday ?? 0,
-      tests_today: testsToday ?? 0,
+      payments_today: paymentsToday.length,
+      revenue_today: revenueToday,
+      tests_today: testsToday.count ?? 0,
+      questions_answered_today: questionsTodayRows.data?.length ?? 0,
+      xp_earned_today: xpToday,
+      active_users_today: activeUsersToday,
     };
   }
 
@@ -644,6 +665,284 @@ export class AdminDashboardService {
     const { data, error, count } = await query;
     if (error) throw error;
     return { data, total: count ?? 0, page, page_size: pageSize };
+  }
+
+  // ============================================================
+  // EXPORTS (CSV)
+  // ============================================================
+
+  async exportUsers() {
+    const [authUsers, profiles] = await Promise.all([
+      this.listAllAuthUsers(),
+      this.supabase.admin.from('profiles').select('user_id, full_name, campus, test_date, is_premium, onboarded, preparation_level, created_at'),
+    ]);
+    const emailById = new Map(authUsers.map((u) => [u.id, u.email]));
+    const signupById = new Map(authUsers.map((u) => [u.id, u.created_at]));
+    const rows = (profiles.data ?? []).map((p: any) => [
+      emailById.get(p.user_id) ?? '',
+      p.full_name ?? '',
+      p.campus ?? '',
+      p.test_date ?? '',
+      p.is_premium ? 'yes' : 'no',
+      p.onboarded ? 'yes' : 'no',
+      p.preparation_level ?? '',
+      signupById.get(p.user_id) ?? p.created_at ?? '',
+    ]);
+    return toCsv(
+      ['email', 'full_name', 'campus', 'test_date', 'is_premium', 'onboarded', 'preparation_level', 'created_at'],
+      rows,
+    );
+  }
+
+  async exportTests() {
+    const [authUsers, attempts] = await Promise.all([
+      this.listAllAuthUsers(),
+      this.supabase.admin
+        .from('test_attempts')
+        .select('user_id, mode, status, started_at, submitted_at, score, max_score, correct_count, incorrect_count, unanswered_count, total_questions, duration_seconds')
+        .not('submitted_at', 'is', null)
+        .order('submitted_at', { ascending: false })
+        .limit(5000),
+    ]);
+    const emailById = new Map(authUsers.map((u) => [u.id, u.email]));
+    const rows = (attempts.data ?? []).map((a: any) => [
+      emailById.get(a.user_id) ?? a.user_id,
+      a.mode ?? '',
+      a.status ?? '',
+      a.started_at ?? '',
+      a.submitted_at ?? '',
+      a.score ?? '',
+      a.max_score ?? '',
+      a.correct_count ?? '',
+      a.incorrect_count ?? '',
+      a.unanswered_count ?? '',
+      a.total_questions ?? '',
+      a.duration_seconds ?? '',
+    ]);
+    return toCsv(
+      ['email', 'mode', 'status', 'started_at', 'submitted_at', 'score', 'max_score', 'correct', 'incorrect', 'unanswered', 'total_questions', 'duration_seconds'],
+      rows,
+    );
+  }
+
+  async exportPayments() {
+    const [authUsers, payments] = await Promise.all([
+      this.listAllAuthUsers(),
+      this.supabase.admin.from('payments').select('*').order('created_at', { ascending: false }).limit(5000),
+    ]);
+    const emailById = new Map(authUsers.map((u) => [u.id, u.email]));
+    const rows = (payments.data ?? []).map((p: any) => [
+      emailById.get(p.user_id) ?? p.user_id,
+      p.trx_id ?? '',
+      p.sender_phone ?? '',
+      p.amount ?? '',
+      p.payment_method ?? '',
+      p.status ?? '',
+      p.created_at ?? '',
+    ]);
+    return toCsv(['email', 'trx_id', 'sender_phone', 'amount', 'payment_method', 'status', 'created_at'], rows);
+  }
+
+  // ============================================================
+  // ANNOUNCEMENTS (broadcast)
+  // ============================================================
+
+  async createAnnouncement(admin: AdminPrincipal, dto: { title: string; body?: string; type?: string }) {
+    const type = ['info', 'success', 'warning', 'promo', 'update'].includes(dto.type ?? '') ? (dto.type as string) : 'info';
+    const users = await this.listAllAuthUsers();
+
+    let inserted = 0;
+    const chunkSize = 500;
+    for (let i = 0; i < users.length; i += chunkSize) {
+      const chunk = users.slice(i, i + chunkSize).map((u) => ({
+        user_id: u.id,
+        type,
+        title: dto.title,
+        body: dto.body ?? null,
+        data: { source: 'broadcast' },
+      }));
+      const { error } = await this.supabase.admin.from('notifications').insert(chunk);
+      if (!error) inserted += chunk.length;
+    }
+
+    const { data: record, error } = await this.supabase.admin
+      .from('broadcasts')
+      .insert({ title: dto.title, body: dto.body ?? null, type, recipient_count: inserted, created_by: admin.email })
+      .select()
+      .single();
+    if (error) throw error;
+
+    await this.log(admin.email, 'broadcast.created', 'broadcast', record.id, { recipients: inserted });
+    return record;
+  }
+
+  async listAnnouncements() {
+    const { data, error } = await this.supabase.admin
+      .from('broadcasts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  // ============================================================
+  // COUPONS
+  // ============================================================
+
+  async createCoupon(admin: AdminPrincipal, dto: { code: string; discount_type: string; discount_value?: number; max_uses?: number | null; expires_at?: string | null }) {
+    const code = dto.code.trim().toUpperCase();
+    if (!code) throw new BadRequestException('Coupon code is required');
+    const { data, error } = await this.supabase.admin
+      .from('premium_coupons')
+      .insert({
+        code,
+        discount_type: dto.discount_type,
+        discount_value: dto.discount_value ?? 0,
+        max_uses: dto.max_uses ?? null,
+        expires_at: dto.expires_at ?? null,
+        created_by: admin.email,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    await this.log(admin.email, 'coupon.created', 'coupon', data.id, { code });
+    return data;
+  }
+
+  async listCoupons() {
+    const { data, error } = await this.supabase.admin
+      .from('premium_coupons')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async toggleCoupon(admin: AdminPrincipal, id: string, isActive: boolean) {
+    const { data, error } = await this.supabase.admin
+      .from('premium_coupons')
+      .update({ is_active: isActive })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    await this.log(admin.email, isActive ? 'coupon.activated' : 'coupon.deactivated', 'coupon', id, { code: data.code });
+    return data;
+  }
+
+  // ============================================================
+  // CATALOG MANAGEMENT
+  // ============================================================
+
+  async manageCatalog() {
+    const [subjects, topics, programs, universities, questions] = await Promise.all([
+      this.supabase.admin.from('subjects').select('*').order('sort_order'),
+      this.supabase.admin.from('topics').select('*').order('name'),
+      this.supabase.admin.from('programs').select('*, university:universities(name)').order('name'),
+      this.supabase.admin.from('universities').select('*').order('name'),
+      this.supabase.admin.from('questions').select('subject_id, topic_id'),
+    ]);
+    const qBySubject = new Map<string, number>();
+    const qByTopic = new Map<string, number>();
+    for (const q of questions.data ?? []) {
+      if (q.subject_id) qBySubject.set(q.subject_id, (qBySubject.get(q.subject_id) ?? 0) + 1);
+      if (q.topic_id) qByTopic.set(q.topic_id, (qByTopic.get(q.topic_id) ?? 0) + 1);
+    }
+    return {
+      subjects: (subjects.data ?? []).map((s: any) => ({ ...s, question_count: qBySubject.get(s.id) ?? 0 })),
+      topics: (topics.data ?? []).map((t: any) => ({ ...t, question_count: qByTopic.get(t.id) ?? 0 })),
+      programs: programs.data ?? [],
+      universities: universities.data ?? [],
+    };
+  }
+
+  async createSubject(admin: AdminPrincipal, dto: { code: string; name: string; category?: string; description?: string; sort_order?: number }) {
+    const { data, error } = await this.supabase.admin
+      .from('subjects')
+      .insert({
+        code: dto.code.trim(),
+        name: dto.name.trim(),
+        category: dto.category ?? 'verbal',
+        description: dto.description ?? null,
+        sort_order: dto.sort_order ?? 0,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    await this.log(admin.email, 'subject.created', 'subject', data.id, { name: data.name });
+    return data;
+  }
+
+  async updateSubject(admin: AdminPrincipal, id: string, dto: UpdateCatalogDto) {
+    const { data, error } = await this.supabase.admin.from('subjects').update(dto).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, 'subject.updated', 'subject', id, { fields: Object.keys(dto) });
+    return data;
+  }
+
+  async toggleSubject(admin: AdminPrincipal, id: string, isActive: boolean) {
+    const { data, error } = await this.supabase.admin.from('subjects').update({ is_active: isActive }).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, isActive ? 'subject.activated' : 'subject.deactivated', 'subject', id, { name: data.name });
+    return data;
+  }
+
+  async createTopic(admin: AdminPrincipal, dto: { subject_id: string; name: string; description?: string }) {
+    const { data, error } = await this.supabase.admin
+      .from('topics')
+      .insert({ subject_id: dto.subject_id, name: dto.name.trim(), description: dto.description ?? null })
+      .select()
+      .single();
+    if (error) throw error;
+    await this.log(admin.email, 'topic.created', 'topic', data.id, { name: data.name });
+    return data;
+  }
+
+  async updateTopic(admin: AdminPrincipal, id: string, dto: UpdateCatalogDto) {
+    const { data, error } = await this.supabase.admin.from('topics').update(dto).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, 'topic.updated', 'topic', id, { fields: Object.keys(dto) });
+    return data;
+  }
+
+  async toggleTopic(admin: AdminPrincipal, id: string, isActive: boolean) {
+    const { data, error } = await this.supabase.admin.from('topics').update({ is_active: isActive }).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, isActive ? 'topic.activated' : 'topic.deactivated', 'topic', id, { name: data.name });
+    return data;
+  }
+
+  async createProgram(admin: AdminPrincipal, dto: { university_id: string; code: string; name: string; description?: string; campus?: string }) {
+    const { data, error } = await this.supabase.admin
+      .from('programs')
+      .insert({
+        university_id: dto.university_id,
+        code: dto.code.trim(),
+        name: dto.name.trim(),
+        description: dto.description ?? null,
+        campus: dto.campus ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    await this.log(admin.email, 'program.created', 'program', data.id, { name: data.name });
+    return data;
+  }
+
+  async updateProgram(admin: AdminPrincipal, id: string, dto: UpdateCatalogDto) {
+    const { data, error } = await this.supabase.admin.from('programs').update(dto).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, 'program.updated', 'program', id, { fields: Object.keys(dto) });
+    return data;
+  }
+
+  async toggleProgram(admin: AdminPrincipal, id: string, isActive: boolean) {
+    const { data, error } = await this.supabase.admin.from('programs').update({ is_active: isActive }).eq('id', id).select().single();
+    if (error) throw error;
+    await this.log(admin.email, isActive ? 'program.activated' : 'program.deactivated', 'program', id, { name: data.name });
+    return data;
   }
 
   // ============================================================

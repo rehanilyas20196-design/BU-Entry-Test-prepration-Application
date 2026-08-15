@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { adminApi } from '@/admin/adminApi';
+import { adminApi, downloadCsv } from '@/admin/adminApi';
 import { AdminShell } from '@/admin/components/AdminShell';
 import {
   AdminBadge,
+  AdminButton,
   AdminColumn,
   AdminDataTable,
   AdminLoader,
@@ -119,6 +120,9 @@ export default function AdminTestsScreen() {
     <AdminShell title="Tests" active="tests">
       <View style={styles.filters}>
         <AdminSearch value={q} onChange={(v) => { setQ(v); setPage(1); setTimeout(() => setDebouncedQ(v), 400); }} placeholder="Search by email..." style={styles.search} />
+        <View style={styles.exportCol}>
+          <AdminButton title="Export CSV" variant="secondary" icon="download" onPress={() => downloadCsv('/admin-dash/export/tests', 'tests.csv').catch((e: any) => alert(e?.message ?? 'Export failed'))} />
+        </View>
         <View style={styles.filterCol}>
           <AdminSelect
             label="Mode"
@@ -172,6 +176,7 @@ const styles = StyleSheet.create({
   },
   search: { flex: 1, minWidth: 240, marginBottom: 12 },
   filterCol: { width: 150, marginBottom: 12 },
+  exportCol: { marginBottom: 12 },
   primary: { fontSize: 13, fontWeight: '600', color: adminColors.text },
   secondary: { fontSize: 11, color: adminColors.textMuted, marginTop: 2 },
   cell: { fontSize: 13, color: adminColors.text },

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -12,7 +13,19 @@ import {
 } from '@nestjs/common';
 import { AdminAuthGuard, AdminRequest } from './admin-auth.guard';
 import { AdminDashboardService } from './admin-dashboard.service';
-import { AdminLoginDto, CreateQuestionDto, ImportQuestionsDto, UpdateQuestionDto } from './admin-dashboard.dto';
+import {
+  AdminLoginDto,
+  CreateAnnouncementDto,
+  CreateCouponDto,
+  CreateProgramDto,
+  CreateQuestionDto,
+  CreateSubjectDto,
+  CreateTopicDto,
+  ImportQuestionsDto,
+  ToggleDto,
+  UpdateCatalogDto,
+  UpdateQuestionDto,
+} from './admin-dashboard.dto';
 
 @Controller('admin-dash')
 @UseGuards(AdminAuthGuard)
@@ -178,5 +191,109 @@ export class AdminDashboardController {
   @Get('catalog')
   catalog() {
     return this.service.catalog();
+  }
+
+  // ---- Exports (CSV) ----
+
+  @Get('export/users')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="users.csv"')
+  exportUsers() {
+    return this.service.exportUsers();
+  }
+
+  @Get('export/tests')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="tests.csv"')
+  exportTests() {
+    return this.service.exportTests();
+  }
+
+  @Get('export/payments')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="payments.csv"')
+  exportPayments() {
+    return this.service.exportPayments();
+  }
+
+  // ---- Announcements ----
+
+  @Post('announcements')
+  createAnnouncement(@Req() req: AdminRequest, @Body() dto: CreateAnnouncementDto) {
+    return this.service.createAnnouncement(req.admin, dto);
+  }
+
+  @Get('announcements')
+  listAnnouncements() {
+    return this.service.listAnnouncements();
+  }
+
+  // ---- Coupons ----
+
+  @Post('coupons')
+  createCoupon(@Req() req: AdminRequest, @Body() dto: CreateCouponDto) {
+    return this.service.createCoupon(req.admin, dto);
+  }
+
+  @Get('coupons')
+  listCoupons() {
+    return this.service.listCoupons();
+  }
+
+  @Post('coupons/:id/toggle')
+  toggleCoupon(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: ToggleDto) {
+    return this.service.toggleCoupon(req.admin, id, dto.is_active ?? false);
+  }
+
+  // ---- Catalog management ----
+
+  @Get('catalog/manage')
+  manageCatalog() {
+    return this.service.manageCatalog();
+  }
+
+  @Post('catalog/subjects')
+  createSubject(@Req() req: AdminRequest, @Body() dto: CreateSubjectDto) {
+    return this.service.createSubject(req.admin, dto);
+  }
+
+  @Patch('catalog/subjects/:id')
+  updateSubject(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: UpdateCatalogDto) {
+    return this.service.updateSubject(req.admin, id, dto);
+  }
+
+  @Post('catalog/subjects/:id/toggle')
+  toggleSubject(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: ToggleDto) {
+    return this.service.toggleSubject(req.admin, id, dto.is_active ?? false);
+  }
+
+  @Post('catalog/topics')
+  createTopic(@Req() req: AdminRequest, @Body() dto: CreateTopicDto) {
+    return this.service.createTopic(req.admin, dto);
+  }
+
+  @Patch('catalog/topics/:id')
+  updateTopic(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: UpdateCatalogDto) {
+    return this.service.updateTopic(req.admin, id, dto);
+  }
+
+  @Post('catalog/topics/:id/toggle')
+  toggleTopic(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: ToggleDto) {
+    return this.service.toggleTopic(req.admin, id, dto.is_active ?? false);
+  }
+
+  @Post('catalog/programs')
+  createProgram(@Req() req: AdminRequest, @Body() dto: CreateProgramDto) {
+    return this.service.createProgram(req.admin, dto);
+  }
+
+  @Patch('catalog/programs/:id')
+  updateProgram(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: UpdateCatalogDto) {
+    return this.service.updateProgram(req.admin, id, dto);
+  }
+
+  @Post('catalog/programs/:id/toggle')
+  toggleProgram(@Req() req: AdminRequest, @Param('id') id: string, @Body() dto: ToggleDto) {
+    return this.service.toggleProgram(req.admin, id, dto.is_active ?? false);
   }
 }

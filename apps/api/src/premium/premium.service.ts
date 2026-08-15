@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
+const PRICE_BDT = 5000;
+
 export interface VerifyPaymentDto {
   trxId: string;
   senderPhone?: string;
@@ -122,5 +124,75 @@ export class PremiumService {
   /** Legacy / Direct activate */
   async activate(userId: string) {
     return this.verifyAndActivate(userId, { trxId: `DIRECT-${Date.now()}` });
+  }
+
+  /**
+   * Redeems an admin-issued coupon code and unlocks Premium.
+   * full  -> free premium
+   * percent -> percentage off the standard 5000 BDT price
+   * flat   -> fixed amount off
+   */
+  async redeemCoupon(userId: string, code: string) {
+    const clean = code?.trim().toUpperCase();
+    if (!clean) {
+      throw new BadRequestException('Coupon code is required');
+    }
+
+    const { data: coupon } = await this.supabase.admin
+      .from('premium_coupons')
+      .select('*')
+      .eq('code', clean)
+      .maybeSingle();
+
+    if (!coupon) throw new BadRequestException('Invalid coupon code');
+    if (!coupon.is_active) throw new BadRequestException('This coupon is no longer active');
+    if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+      throw new BadRequestException('This coupon has expired');
+    }
+    if (coupon.max_uses != null && coupon.used_count >= coupon.max_uses) {
+      throw new BadRequestException('This coupon has reached its usage limit');
+    }
+
+    const paid =
+      coupon.discount_type === 'full'
+        ? 0
+        : coupon.discount_type === 'percent'
+          ? Math.max(0, Math.round(PRICE_BDT - (PRICE_BDT * Number(coupon.discount_value || 0)) / 100))
+          : Math.max(0, PRICE_BDT - Number(coupon.discount_value || 0));
+
+    const { error: profileErr } = await this.supabase.admin
+      .from('profiles')
+      .upsert({ user_id: userId, is_premium: true }, { onConflict: 'user_id' });
+    if (profileErr) {
+      throw new InternalServerErrorException('Failed to activate premium status');
+    }
+
+    try {
+      await this.supabase.admin.from('payments').insert({
+        user_id: userId,
+        trx_id: `COUPON-${clean}-${Date.now()}`,
+        sender_phone: null,
+        amount: paid,
+        till_id: 'COUPON',
+        shop_name: `Coupon ${clean}`,
+        payment_method: 'Coupon',
+        status: 'completed',
+      });
+    } catch (err) {
+      console.warn('Coupon payment record notice:', err);
+    }
+
+    await this.supabase.admin
+      .from('premium_coupons')
+      .update({ used_count: coupon.used_count + 1 })
+      .eq('id', coupon.id);
+
+    return {
+      success: true,
+      message: 'Coupon applied! Premium access granted.',
+      is_premium: true,
+      amount_paid: paid,
+      coupon: clean,
+    };
   }
 }
