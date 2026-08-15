@@ -21,7 +21,8 @@
     "android": {
       "package": "com.buetprep.ai",
       "adaptiveIcon": {
-        "backgroundColor": "#0F172A"
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/icon.png"
       }
     },
     "web": {
