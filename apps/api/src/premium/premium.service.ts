@@ -97,11 +97,10 @@ export class PremiumService {
       console.warn('Payment record log notice:', err);
     }
 
-    // 2. Mark profile as premium
+    // 2. Mark profile as premium (creates the profile row if it doesn't exist yet)
     const { error: profileErr } = await this.supabase.admin
       .from('profiles')
-      .update({ is_premium: true })
-      .eq('user_id', userId);
+      .upsert({ user_id: userId, is_premium: true }, { onConflict: 'user_id' });
 
     if (profileErr) {
       throw new InternalServerErrorException('Failed to activate premium status for profile');
