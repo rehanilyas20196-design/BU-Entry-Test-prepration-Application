@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -30,6 +30,7 @@ export default function RootLayout() {
   const hydrate = useSettingsStore((s) => s.hydrate);
   const hydratePremium = usePremiumStore((s) => s.hydrate);
   const router = useRouter();
+  const pathname = usePathname();
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [showLaunch, setShowLaunch] = useState(true);
   const [launchMs, setLaunchMs] = useState(1600);
@@ -51,8 +52,11 @@ export default function RootLayout() {
   const onboarded = useOnboardingStore((s) => s.onboarded);
 
   // Redirect logic: signed-in users who haven't onboarded go to onboarding.
+  // Admin console (/admin/*) is fully self-contained and manages its own
+  // session, so the user-facing redirect must not hijack those routes.
   useEffect(() => {
     if (!initialized || !onboardingReady) return;
+    if (pathname.startsWith('/admin')) return;
     if (session) {
       if (!onboarded) {
         router.replace('/onboarding');
@@ -63,7 +67,7 @@ export default function RootLayout() {
       router.replace('/sign-in');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized, session, onboarded, onboardingReady]);
+  }, [initialized, session, onboarded, onboardingReady, pathname]);
 
   if (!initialized || !onboardingReady) {
     return <View style={[styles.splash, { backgroundColor: '#0A0E1F' }]} />;
@@ -89,6 +93,7 @@ export default function RootLayout() {
               <Stack.Screen name="lesson" />
               <Stack.Screen name="achievements" />
               <Stack.Screen name="admission/[id]" />
+              <Stack.Screen name="admin" />
             </Stack>
             {showLaunch && (
               <LaunchScreen
