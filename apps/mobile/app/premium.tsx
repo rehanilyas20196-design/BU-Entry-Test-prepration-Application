@@ -238,7 +238,7 @@ export default function PremiumScreen() {
                 {/* Main QR Code Image Frame */}
                 <View style={styles.qrFrame}>
                   <Image
-                    source={require('@/assets/payment_qr.png')}
+                    source={require('../assets/payment_qr.png')}
                     style={styles.qrImage}
                     resizeMode="contain"
                   />

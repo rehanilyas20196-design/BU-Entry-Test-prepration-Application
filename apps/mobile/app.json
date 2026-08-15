@@ -10,12 +10,16 @@
     "splash": {
       "backgroundColor": "#0F172A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.buetprep.ai",
       "infoPlist": {
-        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": false }
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        }
       }
     },
     "android": {
@@ -41,6 +45,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "341f1ff4-328e-4751-b2fe-fcd29a810098"
+      }
     }
   }
 }

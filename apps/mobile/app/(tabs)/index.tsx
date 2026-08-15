@@ -34,6 +34,7 @@ import { accents } from '@/theme/tokens';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
 import type { QuickActionAccent, QuickActionTone, QuickActionIcon } from '@/components/dashboard/QuickActionCard';
 import { PremiumCard } from '@/components/dashboard/PremiumCard';
+import { DownloadAppBanner } from '@/components/dashboard/DownloadAppBanner';
 
 const ACCENTS: Record<string, QuickActionAccent> = {
   indigo: { main: '#6366F1', soft: '#818CF8', ring: '#C7D2FE' },
@@ -307,6 +308,8 @@ export default function HomeScreen() {
         </Animated.View>
       </FadeInView>
 
+      <DownloadAppBanner style={styles.downloadBanner} />
+
       <FadeInView delay={110}>
         <Float3D style={styles.summaryRow} phase={0.1}>
           <GlassPanel
@@ -498,6 +501,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 110, gap: 26 },
+  downloadBanner: { marginTop: 2 },
   heroWrap: { position: 'relative' },
   heroShadow: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
