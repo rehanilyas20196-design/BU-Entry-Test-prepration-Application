@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 import { setAccessToken } from '@/lib/api';
+
+export type EmailOtpType = 'signup' | 'email';
 
 interface AuthState {
   session: Session | null;
@@ -13,7 +14,10 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   initialize: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ needsEmailConfirmation: boolean }>;
+  requestEmailOtp: (email: string) => Promise<void>;
+  verifyEmailOtp: (email: string, token: string, type?: EmailOtpType) => Promise<void>;
+  resendEmailOtp: (email: string, type?: EmailOtpType) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -71,12 +75,66 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw error;
     }
     if (!data.session) {
-      set({ loading: false, session: null, error: 'Please confirm your email before signing in.' });
       setAccessToken(null);
-      throw new Error('Account created. Please check your email to confirm your account, then sign in.');
+      set({ loading: false, session: null });
+      return { needsEmailConfirmation: true };
     }
     setAccessToken(data.session?.access_token ?? null);
     set({ session: data.session, loading: false });
+    return { needsEmailConfirmation: false };
+  },
+
+  verifyEmailOtp: async (email, token, type = 'signup') => {
+    set({ loading: true, error: null });
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type });
+    if (error) {
+      set({ loading: false, error: error.message });
+      throw error;
+    }
+    setAccessToken(data.session?.access_token ?? null);
+    set({ session: data.session ?? null, loading: false });
+  },
+
+  resendEmailOtp: async (email, type = 'signup') => {
+    if (type === 'email') {
+      const isWeb = Platform.OS === 'web';
+      const redirectTo = isWeb
+        ? `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081'}/auth-callback`
+        : 'buetprep://auth/callback';
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: true,
+          data: { full_name: email.split('@')[0] },
+        },
+      });
+      if (error) throw error;
+      return;
+    }
+    const { error } = await supabase.auth.resend({ type, email });
+    if (error) throw error;
+  },
+
+  requestEmailOtp: async (email) => {
+    set({ loading: true, error: null });
+    const isWeb = Platform.OS === 'web';
+    const redirectTo = isWeb
+      ? `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081'}/auth-callback`
+      : 'buetprep://auth/callback';
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+        data: { full_name: email.split('@')[0] },
+      },
+    });
+    if (error) {
+      set({ loading: false, error: error.message });
+      throw error;
+    }
+    set({ loading: false });
   },
 
   signInWithGoogle: async () => {

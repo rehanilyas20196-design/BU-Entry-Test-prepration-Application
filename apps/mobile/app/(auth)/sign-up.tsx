@@ -10,17 +10,23 @@ import { FloatingParticles } from '@/components/ui/FloatingParticles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/components/ui/Toast';
 import { palette } from '@/theme/colors';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { signUp, loading } = useAuthStore();
+  const { signUp, signInWithGoogle, loading } = useAuthStore();
+  const { show } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const handleGoogle = () => {
+    signInWithGoogle().catch((e) => show(e instanceof Error ? e.message : 'Google sign-in failed', 'error'));
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -37,8 +43,12 @@ export default function SignUpScreen() {
       return;
     }
     try {
-      await signUp(email.trim(), password, fullName.trim());
-      router.replace('/onboarding');
+      const result = await signUp(email.trim(), password, fullName.trim());
+      if (result.needsEmailConfirmation) {
+        router.replace({ pathname: '/(auth)/verify-otp', params: { email: email.trim() } });
+      } else {
+        router.replace('/onboarding');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create account.');
     }
@@ -80,6 +90,18 @@ export default function SignUpScreen() {
 
           <AnimatedButton title="Create Account" onPress={handleSubmit} loading={loading} size="lg" />
 
+          <View style={styles.dividerRow}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <AppText variant="small" color="muted">or</AppText>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
+          <AnimatedButton
+            title="Continue with Google"
+            variant="outline"
+            onPress={handleGoogle}
+          />
+
           <View style={styles.footerRow}>
             <AppText variant="body" color="secondary">Already have an account?{' '}</AppText>
             <Link href="/(auth)/sign-in">
@@ -111,5 +133,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     padding: 12, borderRadius: 10, borderWidth: 1,
   },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  divider: { flex: 1, height: 1 },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
 });

@@ -80,7 +80,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="auth-callback" />
-              <Stack.Screen name="practice" />
+              <Stack.Screen name="practice-session" />
               <Stack.Screen name="mock-test" />
               <Stack.Screen name="mock-result" />
               <Stack.Screen name="ai-tutor" />

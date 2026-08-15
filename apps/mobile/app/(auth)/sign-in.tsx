@@ -16,17 +16,32 @@ import { palette } from '@/theme/colors';
 export default function SignInScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { signInWithEmail, signInWithGoogle, loading } = useAuthStore();
+  const { signInWithEmail, requestEmailOtp, signInWithGoogle, loading } = useAuthStore();
   const { show } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<'password' | 'otp'>('password');
 
   const handleSubmit = async () => {
     setError(null);
-    if (!email || !password) {
-      setError('Please enter your email and password.');
+    if (!email) {
+      setError('Please enter your email.');
+      return;
+    }
+    if (mode === 'otp') {
+      try {
+        await requestEmailOtp(email.trim());
+        router.replace({ pathname: '/(auth)/verify-otp', params: { email: email.trim(), type: 'email' } });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unable to send the code.';
+        setError(message);
+      }
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
       return;
     }
     try {
@@ -82,22 +97,42 @@ export default function SignInScreen() {
             autoComplete="email"
             icon={<Feather name="mail" size={17} color={colors.textMuted} />}
           />
-          <TextField
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secureTextEntry={!showPassword}
-            autoComplete="current-password"
-            icon={<Feather name="lock" size={17} color={colors.textMuted} />}
-            trailing={
-              <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
-                <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={colors.textMuted} />
-              </Pressable>
-            }
+          {mode === 'password' && (
+            <TextField
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secureTextEntry={!showPassword}
+              autoComplete="current-password"
+              icon={<Feather name="lock" size={17} color={colors.textMuted} />}
+              trailing={
+                <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+                  <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={colors.textMuted} />
+                </Pressable>
+              }
+            />
+          )}
+
+          <AnimatedButton
+            title={mode === 'otp' ? 'Send Me a Code' : 'Sign In'}
+            onPress={handleSubmit}
+            loading={loading}
+            size="lg"
           />
 
-          <AnimatedButton title="Sign In" onPress={handleSubmit} loading={loading} size="lg" />
+          <Pressable
+            onPress={() => {
+              setError(null);
+              setMode((m) => (m === 'otp' ? 'password' : 'otp'));
+            }}
+            hitSlop={8}
+            style={styles.link}
+          >
+            <AppText variant="body" color="primary">
+              {mode === 'otp' ? 'Sign in with password instead' : 'Sign in with a one-time code'}
+            </AppText>
+          </Pressable>
 
           <View style={styles.dividerRow}>
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
