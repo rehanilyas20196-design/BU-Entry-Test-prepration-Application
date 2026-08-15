@@ -38,6 +38,9 @@ async function createApp() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
+  // Mount controller routes before serving requests (required for serverless).
+  await app.init();
+
   return app;
 }
 
