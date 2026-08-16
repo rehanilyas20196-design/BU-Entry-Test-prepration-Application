@@ -52,11 +52,21 @@ export default function RootLayout() {
   const onboarded = useOnboardingStore((s) => s.onboarded);
 
   // Redirect logic: signed-in users who haven't onboarded go to onboarding.
-  // Admin console (/admin/*) is fully self-contained and manages its own
-  // session, so the user-facing redirect must not hijack those routes.
+  // Admin console (/admin/*) and the auth flows (/sign-in, /sign-up,
+  // /verify-otp, /forgot-password, /auth-callback) are self-contained, so the
+  // redirect must not hijack those routes.
   useEffect(() => {
     if (!initialized || !onboardingReady) return;
     if (pathname.startsWith('/admin')) return;
+    if (
+      pathname === '/sign-in' ||
+      pathname === '/sign-up' ||
+      pathname === '/verify-otp' ||
+      pathname === '/forgot-password' ||
+      pathname === '/auth-callback'
+    ) {
+      return;
+    }
     if (session) {
       if (!onboarded) {
         router.replace('/onboarding');
