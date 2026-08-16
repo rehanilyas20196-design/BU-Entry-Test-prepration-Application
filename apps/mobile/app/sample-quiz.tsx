@@ -57,6 +57,14 @@ export default function SampleQuizScreen() {
     if (option.key === question.correct_option) setScore((s) => s + 1);
   };
 
+  const handleClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(session ? '/(tabs)' : '/sign-in');
+    }
+  };
+
   const handleNext = () => {
     if (index < total - 1) {
       setIndex(index + 1);
@@ -95,7 +103,7 @@ export default function SampleQuizScreen() {
           message="Please check your connection and try again."
           onRetry={() => refetch()}
         />
-        <Button title="Go back" variant="outline" onPress={() => router.back()} />
+        <Button title="Go back" variant="outline" onPress={handleClose} />
       </View>
     );
   }
@@ -171,7 +179,7 @@ export default function SampleQuizScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Close sample quiz">
+        <Pressable onPress={handleClose} style={styles.backBtn} accessibilityLabel="Close sample quiz">
           <Feather name="x" size={22} color={colors.text} />
         </Pressable>
         <View style={styles.progressWrap}>
