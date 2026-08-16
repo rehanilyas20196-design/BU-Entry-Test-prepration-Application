@@ -193,15 +193,32 @@ export class TestsService {
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
+
+    // Mock tests earn XP: 5 per correct answer, plus a 20 XP completion bonus.
+    const mockXp = correct * 5 + 20;
     if (stats) {
+      const newXp = (stats.xp ?? 0) + mockXp;
       await this.supabase.admin
         .from('user_stats')
         .update({
           total_mock_tests: (stats.total_mock_tests ?? 0) + 1,
           best_mock_score: Math.max(stats.best_mock_score ?? 0, score),
+          xp: newXp,
+          level: Math.floor(newXp / 100) + 1,
         })
         .eq('id', stats.id);
+    } else {
+      await this.supabase.admin.from('user_stats').insert({
+        user_id: userId,
+        total_mock_tests: 1,
+        best_mock_score: score,
+        xp: mockXp,
+        level: 1,
+      });
     }
+    await this.supabase.admin
+      .from('xp_events')
+      .insert({ user_id: userId, amount: mockXp, reason: 'mock_test' });
 
     // Auto-record wrong answers into the Mistakes review list.
     await this.syncMistakes(userId, answers ?? []);

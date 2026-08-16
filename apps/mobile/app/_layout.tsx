@@ -63,7 +63,8 @@ export default function RootLayout() {
       pathname === '/sign-up' ||
       pathname === '/verify-otp' ||
       pathname === '/forgot-password' ||
-      pathname === '/auth-callback'
+      pathname === '/auth-callback' ||
+      pathname === '/sample-quiz'
     ) {
       return;
     }
@@ -100,6 +101,8 @@ export default function RootLayout() {
               <Stack.Screen name="learn-topics" />
               <Stack.Screen name="lesson" />
               <Stack.Screen name="achievements" />
+              <Stack.Screen name="leaderboard" />
+              <Stack.Screen name="sample-quiz" />
               <Stack.Screen name="admission/[id]" />
               <Stack.Screen name="admin" />
             </Stack>

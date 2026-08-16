@@ -48,6 +48,8 @@ export class AnalyticsService {
 
     return {
       stats: stats.data ?? null,
+      current_streak: stats.data?.current_streak ?? 0,
+      longest_streak: stats.data?.longest_streak ?? 0,
       weak_topics: weakTopics,
       strong_topics: strongTopics,
       topic_breakdown: topicRows,

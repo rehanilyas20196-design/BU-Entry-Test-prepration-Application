@@ -17,6 +17,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { HealthModule } from './health/health.module';
 import { PremiumModule } from './premium/premium.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { PublicModule } from './public/public.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
     HealthModule,
     PremiumModule,
     AdminDashboardModule,
+    PublicModule,
+    LeaderboardModule,
   ],
   providers: [
     {

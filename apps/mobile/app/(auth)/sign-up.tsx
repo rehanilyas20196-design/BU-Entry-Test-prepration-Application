@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View, Image } from 'react-native';
 import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { useResponsive } from '@/hooks/useResponsive';
 import { AppText } from '@/components/ui/AppText';
@@ -15,11 +15,12 @@ import { useToast } from '@/components/ui/Toast';
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
   const { isWeb, isDesktop } = useResponsive();
   const { signUp, signInWithGoogle, loading } = useAuthStore();
   const { show } = useToast();
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);

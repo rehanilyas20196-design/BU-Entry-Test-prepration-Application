@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { confirmAction } from '@/lib/confirm';
 import { PremiumCard } from '@/components/dashboard/PremiumCard';
 import { AnimatedSwitch } from '@/components/ui/AnimatedSwitch';
+import { ACHIEVEMENTS, AchievementData } from '@/content/achievements';
 
 interface Profile {
   full_name: string | null;
@@ -33,11 +34,19 @@ interface Stats {
   current_streak: number;
   total_questions_answered: number;
   total_mock_tests: number;
+  best_accuracy: number | null;
+}
+
+interface AnalyticsData {
+  overall_accuracy: number;
+  topic_breakdown?: { attempted: number; last_accuracy: number | null }[];
+  mock_tests?: { mode: string; status: string }[];
 }
 
 const STUDY_MENU = [
   { icon: 'book-open' as const, label: 'Lessons', route: '/(tabs)/learn' },
   { icon: 'award' as const, label: 'Achievements', route: '/achievements' },
+  { icon: 'award' as const, label: 'Leaderboard', route: '/leaderboard' },
   { icon: 'map' as const, label: 'Admission Roadmap', route: '/(tabs)/guide' },
   { icon: 'bookmark' as const, label: 'My Bookmarks', route: '/bookmarks' },
   { icon: 'alert-circle' as const, label: 'My Mistakes', route: '/mistakes' },
@@ -70,6 +79,31 @@ export default function ProfileScreen() {
     queryFn: () => api.get<Stats>('/users/me/stats'),
     enabled: !!session,
   });
+
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics-profile'],
+    queryFn: () => api.get<AnalyticsData>('/analytics/me'),
+    enabled: !!session,
+  });
+
+  const completedTopics = (analytics?.topic_breakdown ?? []).filter(
+    (t) => t.last_accuracy != null && t.last_accuracy >= 75 && t.attempted >= 5,
+  ).length;
+  const timedAttempts = (analytics?.mock_tests ?? []).filter(
+    (t) => t.status === 'submitted' && t.mode === 'timed_practice',
+  ).length;
+
+  const badgeData: AchievementData = {
+    totalQuestions: stats?.total_questions_answered ?? 0,
+    totalMockTests: stats?.total_mock_tests ?? 0,
+    currentStreak: stats?.current_streak ?? 0,
+    bestAccuracy: stats?.best_accuracy ?? 0,
+    overallAccuracy: analytics?.overall_accuracy ?? 0,
+    timedAttempts,
+    topicsCompleted: completedTopics,
+    xp: stats?.xp ?? 0,
+  };
+  const earnedBadges = ACHIEVEMENTS.filter((a) => a.current(badgeData) >= a.target).length;
 
   const programName = profile?.program ? (Array.isArray(profile.program) ? profile.program[0]?.name : profile.program.name) : null;
 
@@ -121,6 +155,9 @@ export default function ProfileScreen() {
           <AppText variant="body" color="secondary">{programName ?? 'Program not set'}</AppText>
           <View style={styles.badges}>
             <Badge label={`Level ${stats?.level ?? 1} · ${stats?.xp ?? 0} XP`} tone="primary" />
+            <Pressable onPress={() => router.push('/achievements')} accessibilityRole="button">
+              <Badge label={`${earnedBadges} badges earned`} tone="success" />
+            </Pressable>
             {profile?.test_date && (
               <Badge label={profile.test_date} tone="neutral" />
             )}

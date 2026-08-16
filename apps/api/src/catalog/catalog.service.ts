@@ -37,31 +37,88 @@ export class CatalogService {
     return data;
   }
 
-  async getSubjects() {
+  async getSubjects(userId?: string) {
     const { data, error } = await this.supabase.admin
       .from('subjects')
       .select('*, questions(count)')
       .eq('is_active', true)
       .order('sort_order');
     if (error) throw error;
-    return (data ?? []).map((s: any) => ({
+
+    const subjects = (data ?? []).map((s: any) => ({
       ...s,
       question_count: Array.isArray(s.questions) && s.questions[0] ? (s.questions[0].count ?? 0) : 0,
       _count: {
         questions: Array.isArray(s.questions) && s.questions[0] ? (s.questions[0].count ?? 0) : 0,
       },
     }));
+
+    if (!userId) return subjects;
+
+    const { data: progress } = await this.supabase.admin
+      .from('user_progress')
+      .select('subject_id, is_correct')
+      .eq('user_id', userId)
+      .limit(5000);
+
+    const bySubject = new Map<string, { attempted: number; correct: number }>();
+    for (const row of progress ?? []) {
+      const entry = bySubject.get(row.subject_id) ?? { attempted: 0, correct: 0 };
+      entry.attempted++;
+      if (row.is_correct) entry.correct++;
+      bySubject.set(row.subject_id, entry);
+    }
+
+    return subjects.map((s: any) => {
+      const p = bySubject.get(s.id) ?? { attempted: 0, correct: 0 };
+      return {
+        ...s,
+        attempted: p.attempted,
+        correct: p.correct,
+        progress: p.attempted > 0 ? Math.min(1, p.correct / p.attempted) : 0,
+      };
+    });
   }
 
-  async getTopics(subjectId?: string) {
+  async getTopics(subjectId?: string, userId?: string) {
     let query = this.supabase.admin
       .from('topics')
-      .select('*, subject:subjects(*)')
+      .select('*, subject:subjects(*), questions(count)')
       .eq('is_active', true)
       .order('name');
     if (subjectId) query = query.eq('subject_id', subjectId);
     const { data, error } = await query;
     if (error) throw error;
-    return data;
+
+    const topics = (data ?? []).map((t: any) => ({
+      ...t,
+      question_count: Array.isArray(t.questions) && t.questions[0] ? (t.questions[0].count ?? 0) : 0,
+      _count: {
+        questions: Array.isArray(t.questions) && t.questions[0] ? (t.questions[0].count ?? 0) : 0,
+      },
+    }));
+
+    if (!userId) return topics;
+
+    const { data: progress } = await this.supabase.admin
+      .from('topic_progress')
+      .select('topic_id, attempted, correct')
+      .eq('user_id', userId);
+
+    const byTopic = new Map<string, { attempted: number; correct: number }>();
+    for (const row of progress ?? []) {
+      byTopic.set(row.topic_id, { attempted: row.attempted ?? 0, correct: row.correct ?? 0 });
+    }
+
+    return topics.map((t: any) => {
+      const p = byTopic.get(t.id) ?? { attempted: 0, correct: 0 };
+      return {
+        ...t,
+        attempted: p.attempted,
+        correct: p.correct,
+        accuracy: p.attempted > 0 ? Math.round((p.correct / p.attempted) * 10000) / 100 : null,
+        completed: p.attempted >= 5 && p.attempted > 0 && p.correct / p.attempted >= 0.75,
+      };
+    });
   }
 }

@@ -53,6 +53,16 @@ interface Subject {
   name: string;
   code?: string;
   question_count: number;
+  attempted?: number;
+  correct?: number;
+  progress?: number;
+}
+
+interface PublicStats {
+  visible: boolean;
+  active_users: number;
+  active_today: number;
+  questions_answered_today: number;
 }
 
 const TODAY_TARGET = 30;
@@ -130,6 +140,12 @@ export default function HomeScreen() {
     enabled: !!session,
   });
 
+  const { data: publicStats } = useQuery({
+    queryKey: ['public-stats'],
+    queryFn: () => api.get<PublicStats>('/public/stats'),
+    enabled: true,
+  });
+
   const days = daysUntil(profile?.test_date);
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Student';
   const accuracy =
@@ -186,6 +202,61 @@ export default function HomeScreen() {
         </View>
 
         <DownloadAppBanner style={styles.downloadBanner} />
+
+        <Pressable
+          onPress={() => router.push('/sample-quiz')}
+          accessibilityRole="button"
+          accessibilityLabel="Try a free sample quiz"
+          style={({ pressed }) => [styles.sampleQuizCard, pressed && { opacity: 0.92 }]}
+        >
+          <Card padded={false} style={styles.sampleQuizInner}>
+            <View style={styles.sampleQuizIcon}>
+              <Feather name="zap" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="bodyMedium">Try a free sample quiz</AppText>
+              <AppText variant="small" color="muted">5 questions, no sign-up needed</AppText>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.textMuted} />
+          </Card>
+        </Pressable>
+
+        {publicStats?.visible && (
+          <Card style={styles.socialProof}>
+            <View style={styles.socialProofItem}>
+              <AppText variant="display" style={{ color: colors.primary, fontSize: 22 }}>
+                {(publicStats.active_users ?? 0).toLocaleString()}
+              </AppText>
+              <AppText variant="small" color="muted">students practicing</AppText>
+            </View>
+            <View style={[styles.socialProofDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.socialProofItem}>
+              <AppText variant="display" style={{ color: colors.success, fontSize: 22 }}>
+                {(publicStats.questions_answered_today ?? 0).toLocaleString()}
+              </AppText>
+              <AppText variant="small" color="muted">questions answered today</AppText>
+            </View>
+          </Card>
+        )}
+
+        {days === null && (
+          <Card style={styles.countdownCard}>
+            <View style={styles.countdownHeader}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="bodyMedium">Set your exam date</AppText>
+                <AppText variant="small" color="muted">
+                  We'll count down to your BUET test and keep you on track.
+                </AppText>
+              </View>
+              <Button
+                title="Set date"
+                variant="outline"
+                size="sm"
+                onPress={() => router.push('/study-plan')}
+              />
+            </View>
+          </Card>
+        )}
 
         {days !== null && (
           <Card style={styles.countdownCard}>
@@ -264,6 +335,17 @@ export default function HomeScreen() {
           />
         </View>
 
+        <Card style={styles.xpCard}>
+          <View style={styles.xpHeader}>
+            <View style={styles.xpTitleRow}>
+              <Feather name="star" size={16} color={colors.primary} />
+              <AppText variant="bodyMedium">Level {level}</AppText>
+            </View>
+            <AppText variant="small" color="muted">{xp % 100} / 100 XP to next level</AppText>
+          </View>
+          <ProgressBar progress={(xp % 100) / 100} height={8} color={colors.primary} />
+        </Card>
+
         <PremiumCard onPress={() => router.push('/premium')} />
 
         <View style={styles.section}>
@@ -308,6 +390,7 @@ export default function HomeScreen() {
                   key={s.id}
                   name={s.name}
                   questionCount={s.question_count}
+                  progress={s.progress}
                   onPress={() => router.push({ pathname: '/topics', params: { subjectId: s.id, subjectName: s.name } })}
                 />
               ))}
@@ -367,6 +450,18 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 110, gap: 24 },
   downloadBanner: { marginTop: 2 },
+  sampleQuizCard: {},
+  sampleQuizInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  sampleQuizIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.12)',
+  },
+  socialProof: {
+    flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12,
+  },
+  socialProofItem: { flex: 1, alignItems: 'center', gap: 2 },
+  socialProofDivider: { width: 1, height: 36 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   headerText: { flex: 1, gap: 2 },
   headerBadges: { flexDirection: 'row', gap: 8, paddingTop: 2, flexWrap: 'wrap', justifyContent: 'flex-end' },
@@ -381,6 +476,9 @@ const styles = StyleSheet.create({
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   goalNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   statsGrid: { flexDirection: 'row', gap: 12 },
+  xpCard: { gap: 8, padding: 16 },
+  xpHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  xpTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   section: { gap: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },

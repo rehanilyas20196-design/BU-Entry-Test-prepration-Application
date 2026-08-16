@@ -158,6 +158,10 @@ export default function SignInScreen() {
         <AppText variant="small" color="muted" style={styles.disclaimer}>
           This is an independent educational preparation platform and is not affiliated with or endorsed by Bahria University.
         </AppText>
+
+        <Link href="/sample-quiz" style={styles.tryQuizLink}>
+          <AppText variant="bodyMedium" color="primary">Not ready to sign up? Try a free 5-question sample quiz →</AppText>
+        </Link>
         </View>
       </ScreenScrollView>
     </KeyboardAvoidingView>
@@ -196,4 +200,5 @@ const styles = StyleSheet.create({
   link: { alignSelf: 'center' },
   footerRow: { flexDirection: 'row', justifyContent: 'center' },
   disclaimer: { textAlign: 'center' },
+  tryQuizLink: { alignSelf: 'center', paddingHorizontal: 8, paddingVertical: 4 },
 });

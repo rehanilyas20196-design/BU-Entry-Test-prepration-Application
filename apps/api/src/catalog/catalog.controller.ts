@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('catalog')
 @UseGuards(SupabaseAuthGuard)
@@ -23,12 +24,12 @@ export class CatalogController {
   }
 
   @Get('subjects')
-  getSubjects() {
-    return this.catalog.getSubjects();
+  getSubjects(@CurrentUser('id') userId: string) {
+    return this.catalog.getSubjects(userId);
   }
 
   @Get('topics')
-  getTopics(@Query('subject_id') subjectId?: string) {
-    return this.catalog.getTopics(subjectId);
+  getTopics(@Query('subject_id') subjectId?: string, @CurrentUser('id') userId?: string) {
+    return this.catalog.getTopics(subjectId, userId);
   }
 }

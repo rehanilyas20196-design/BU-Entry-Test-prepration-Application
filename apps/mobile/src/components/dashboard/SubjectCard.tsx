@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import { subjectConfig } from '@/components/dashboard/SubjectTile';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -10,14 +11,16 @@ interface SubjectCardProps {
   name: string;
   questionCount: number;
   accuracy?: number | null;
+  progress?: number;
   onPress?: () => void;
   index?: number;
 }
 
-export function SubjectCard({ name, questionCount, accuracy, onPress, index: _index = 0 }: SubjectCardProps) {
+export function SubjectCard({ name, questionCount, accuracy, progress, onPress, index: _index = 0 }: SubjectCardProps) {
   const { colors } = useTheme();
   const cfg = subjectConfig(name);
   const hasAccuracy = accuracy != null;
+  const hasProgress = progress != null && progress > 0;
 
   return (
     <Card style={styles.card}>
@@ -48,6 +51,14 @@ export function SubjectCard({ name, questionCount, accuracy, onPress, index: _in
           )}
           <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textMuted} />
         </View>
+        {hasProgress && (
+          <View style={styles.progressWrap}>
+            <ProgressBar progress={Math.min(1, progress)} height={4} color={cfg.accent.main} trackColor={colors.surfaceAlt} />
+            <AppText variant="micro" color="muted">
+              {Math.round(Math.min(1, progress) * 100)}% mastered
+            </AppText>
+          </View>
+        )}
       </Pressable>
     </Card>
   );
@@ -66,4 +77,5 @@ const styles = StyleSheet.create({
   accuracyBadge: {
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
+  progressWrap: { paddingHorizontal: 14, paddingBottom: 12, gap: 4 },
 });

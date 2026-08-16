@@ -17,6 +17,10 @@ interface Topic {
   id: string;
   name: string;
   description: string | null;
+  attempted?: number;
+  correct?: number;
+  accuracy?: number | null;
+  completed?: boolean;
 }
 
 export default function TopicsScreen() {
@@ -27,6 +31,15 @@ export default function TopicsScreen() {
   const { data: topics, isLoading, error, refetch } = useQuery({
     queryKey: ['topics', params.subjectId],
     queryFn: () => api.get<Topic[]>(`/catalog/topics?subject_id=${params.subjectId}`),
+  });
+
+  // Sequential chapter unlock: the first topic is always open; each next topic
+  // unlocks once the previous one has been attempted.
+  let prevAttempted = true;
+  const topicsWithState = (topics ?? []).map((t) => {
+    const isLocked = !prevAttempted;
+    prevAttempted = (t.attempted ?? 0) > 0;
+    return { ...t, isLocked };
   });
 
   return (
@@ -64,27 +77,38 @@ export default function TopicsScreen() {
           <EmptyState icon="book-open" title="No topics yet" message="This subject has no topics available yet." />
         ) : (
           <View style={styles.topicList}>
-            {(topics ?? []).map((t, idx) => (
+            {topicsWithState.map((t, idx) => (
               <FadeInView key={t.id} delay={idx * 40} distance={12}>
-                <GlassCard style={styles.topicCard}>
+                <GlassCard style={t.isLocked ? [styles.topicCard, styles.topicLocked] : styles.topicCard}>
                   <Pressable
-                    onPress={() =>
-                      router.push({ pathname: '/practice-session', params: { subjectId: params.subjectId, topicId: t.id, topicName: t.name } })
-                    }
+                    onPress={() => {
+                      if (t.isLocked) return;
+                      router.push({ pathname: '/practice-session', params: { subjectId: params.subjectId, topicId: t.id, topicName: t.name } });
+                    }}
                     accessibilityRole="button"
-                    accessibilityLabel={t.name}
+                    accessibilityLabel={t.isLocked ? `${t.name} locked` : t.name}
+                    disabled={t.isLocked}
                   >
                     <View style={styles.topicRow}>
-                      <View style={styles.topicIcon}>
-                        <Feather name="layers" size={18} color={colors.primary} />
+                      <View style={[styles.topicIcon, t.isLocked ? { backgroundColor: colors.surfaceAlt } : undefined]}>
+                        <Feather name={t.isLocked ? 'lock' : 'layers'} size={18} color={t.isLocked ? colors.textMuted : colors.primary} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
-                        <AppText variant="label">{t.name}</AppText>
-                        {t.description && (
-                          <AppText variant="small" color="muted">{t.description}</AppText>
+                        <AppText variant="label" style={t.isLocked ? { color: colors.textMuted } : undefined}>{t.name}</AppText>
+                        {t.isLocked ? (
+                          <AppText variant="small" color="muted">Complete the previous chapter to unlock</AppText>
+                        ) : (
+                          <>
+                            {t.description && (
+                              <AppText variant="small" color="muted">{t.description}</AppText>
+                            )}
+                            {t.completed && (
+                              <AppText variant="small" color="success">✓ Completed</AppText>
+                            )}
+                          </>
                         )}
                       </View>
-                      <Feather name="chevron-right" size={18} color={colors.textMuted} />
+                      <Feather name="chevron-right" size={18} color={t.isLocked ? colors.border : colors.textMuted} />
                     </View>
                   </Pressable>
                 </GlassCard>
@@ -104,6 +128,7 @@ const styles = StyleSheet.create({
   section: { gap: 12 },
   topicList: { gap: 8 },
   topicCard: { padding: 0 },
+  topicLocked: { opacity: 0.65 },
   topicRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   topicIcon: {
     width: 36, height: 36, borderRadius: 10,

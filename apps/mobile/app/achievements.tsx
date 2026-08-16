@@ -19,7 +19,6 @@ interface UserStats {
   total_mock_tests: number;
   best_accuracy: number | null;
 }
-
 interface AnalyticsData {
   overall_accuracy: number;
   topic_breakdown?: { attempted: number; last_accuracy: number | null }[];
@@ -66,6 +65,7 @@ export default function AchievementsScreen() {
     overallAccuracy: analytics?.overall_accuracy ?? 0,
     timedAttempts,
     topicsCompleted: completedTopics,
+    xp: stats?.xp ?? 0,
   };
 
   const unlocked = ACHIEVEMENTS.filter((a) => a.current(data) >= a.target);

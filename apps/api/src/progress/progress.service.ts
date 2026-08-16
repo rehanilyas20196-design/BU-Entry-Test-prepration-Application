@@ -25,8 +25,10 @@ export class ProgressService {
       await this.upsertTopicProgress(userId, dto.topic_id, dto.is_correct, dto.time_spent_seconds);
     }
     await this.upsertMistake(userId, dto);
-    await this.upsertDailyStats(userId, dto.is_correct, dto.time_spent_seconds);
-    await this.addXp(userId, dto.is_correct ? 10 : 2);
+    const xpEarned = dto.is_correct ? 10 : 2;
+    await this.upsertDailyStats(userId, dto.is_correct, dto.time_spent_seconds, xpEarned);
+    await this.addXp(userId, xpEarned);
+    await this.updateStreak(userId);
 
     return { recorded: true };
   }
@@ -127,7 +129,7 @@ export class ProgressService {
     }
   }
 
-  private async upsertDailyStats(userId: string, correct: boolean, timeSpent?: number) {
+  private async upsertDailyStats(userId: string, correct: boolean, timeSpent?: number, xpEarned?: number) {
     const date = new Date().toISOString().slice(0, 10);
     const { data } = await this.supabase.admin
       .from('daily_user_stats')
@@ -143,6 +145,7 @@ export class ProgressService {
         questions_answered: 1,
         questions_correct: correct ? 1 : 0,
         minutes_studied: Math.max(1, Math.round((timeSpent ?? 60) / 60)),
+        xp_earned: xpEarned ?? 0,
       });
     } else {
       await this.supabase.admin
@@ -151,9 +154,58 @@ export class ProgressService {
           questions_answered: data.questions_answered + 1,
           questions_correct: data.questions_correct + (correct ? 1 : 0),
           minutes_studied: data.minutes_studied + Math.max(1, Math.round((timeSpent ?? 60) / 60)),
+          xp_earned: (data.xp_earned ?? 0) + (xpEarned ?? 0),
         })
         .eq('id', data.id);
     }
+  }
+
+  /** Recompute and persist the daily streak (consecutive study days) for the user. */
+  private async updateStreak(userId: string) {
+    const { data } = await this.supabase.admin
+      .from('daily_user_stats')
+      .select('date')
+      .eq('user_id', userId)
+      .order('date', { ascending: true });
+    if (!data || data.length === 0) return;
+
+    const days = new Set(data.map((d) => d.date));
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Current streak: count consecutive days ending today (or yesterday if today has no activity yet).
+    let currentStreak = 0;
+    const cursor = new Date();
+    const cursorKey = cursor.toISOString().slice(0, 10);
+    if (!days.has(cursorKey)) cursor.setDate(cursor.getDate() - 1);
+    while (days.has(cursor.toISOString().slice(0, 10))) {
+      currentStreak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    // Longest streak: walk sorted dates and count runs.
+    const sorted = Array.from(days).sort();
+    let longestStreak = 0;
+    let run = 0;
+    let prev: string | null = null;
+    for (const d of sorted) {
+      if (prev) {
+        const gap = Math.round((new Date(d).getTime() - new Date(prev).getTime()) / 86400000);
+        run = gap === 1 ? run + 1 : 1;
+      } else {
+        run = 1;
+      }
+      longestStreak = Math.max(longestStreak, run);
+      prev = d;
+    }
+
+    const hasToday = days.has(today);
+    await this.supabase.admin
+      .from('user_stats')
+      .update({
+        current_streak: currentStreak,
+        longest_streak: hasToday ? Math.max(longestStreak, currentStreak) : longestStreak,
+      })
+      .eq('user_id', userId);
   }
 
   private async addXp(userId: string, amount: number) {

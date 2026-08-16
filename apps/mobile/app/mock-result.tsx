@@ -166,6 +166,26 @@ export default function MockResultScreen() {
         </View>
       )}
 
+      {(data.topic_performance?.some((t) => t.accuracy < 60) ?? false) && (
+        <View style={styles.section}>
+          <View style={[styles.weakBanner, { backgroundColor: colors.dangerLight, borderColor: colors.danger }]}>
+            <Feather name="alert-triangle" size={18} color={colors.danger} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="bodyMedium" color="danger">Practice your weak areas</AppText>
+              <AppText variant="small" color="muted">
+                Focus on the topics below 60% to boost your score.
+              </AppText>
+            </View>
+          </View>
+          <Button
+            title="Practice weak areas"
+            icon={<Feather name="target" size={16} color="#FFFFFF" />}
+            onPress={() => router.push({ pathname: '/practice-session', params: { smartRetry: '1', title: 'Weak Areas Practice' } })}
+            size="lg"
+          />
+        </View>
+      )}
+
       {(data.incorrect_questions?.length ?? 0) > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -222,6 +242,10 @@ const styles = StyleSheet.create({
   statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.25)' },
   section: { gap: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  weakBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 14, borderWidth: 1,
+  },
   list: { gap: 8 },
   perfRow: { padding: 14, gap: 8 },
   perfHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
