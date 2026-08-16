@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { radius, motion } from '@/theme/theme';
+
+const DRIVER = Platform.OS !== 'web';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -37,7 +39,7 @@ export function Button({
   const press = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(press, { toValue: 0, duration: 0, useNativeDriver: true }).start();
+    Animated.timing(press, { toValue: 0, duration: 0, useNativeDriver: DRIVER }).start();
   }, [press]);
 
   const isPrimary = variant === 'primary';
@@ -66,8 +68,8 @@ export function Button({
       <Pressable
         testID={testID}
         onPress={onPress}
-        onPressIn={() => Animated.timing(press, { toValue: 1, duration: motion.fast, useNativeDriver: true }).start()}
-        onPressOut={() => Animated.timing(press, { toValue: 0, duration: motion.fast, useNativeDriver: true }).start()}
+        onPressIn={() => Animated.timing(press, { toValue: 1, duration: motion.fast, useNativeDriver: DRIVER }).start()}
+        onPressOut={() => Animated.timing(press, { toValue: 0, duration: motion.fast, useNativeDriver: DRIVER }).start()}
         disabled={disabled || loading}
         style={[
           styles.base,

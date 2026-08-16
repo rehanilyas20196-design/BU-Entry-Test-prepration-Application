@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, Platform, StyleSheet, Text } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+
+const DRIVER = Platform.OS !== 'web';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -30,9 +32,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     (message: string, type: ToastType = 'info') => {
       if (timer.current) clearTimeout(timer.current);
       setToast({ id: Date.now(), message, type });
-      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: DRIVER }).start();
       timer.current = setTimeout(() => {
-        Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() =>
+        Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: DRIVER }).start(() =>
           setToast(null),
         );
       }, 3000);
