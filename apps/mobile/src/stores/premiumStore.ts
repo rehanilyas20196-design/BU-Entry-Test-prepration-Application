@@ -65,6 +65,10 @@ export const usePremiumStore = create<PremiumState>((set, get) => ({
 
   checkStatus: async () => {
     try {
+      const { useAuthStore } = await import('@/stores/authStore');
+      if (!useAuthStore.getState().session) {
+        return get().isPremium;
+      }
       const { api } = await import('@/lib/api');
       const res = await api.get<{
         is_premium: boolean;
