@@ -6,6 +6,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -70,11 +71,13 @@ export default function StudyPlanScreen() {
 
       {isPremium && !plan && (
         <Card style={styles.formCard}>
-          <TextField
-            label="Test date (YYYY-MM-DD)"
-            value={testDate}
-            onChangeText={setTestDate}
-            placeholder={profile?.test_date ?? '2026-09-15'}
+          <DatePicker
+            label="Test date"
+            value={testDate || profile?.test_date || null}
+            onChange={(d) => setTestDate(d ?? '')}
+            error={
+              testDate ? (new Date(`${testDate}T00:00:00`) < new Date(new Date().toDateString()) ? 'Test date cannot be in the past' : null) : undefined
+            }
           />
           <TextField
             label="Daily study minutes"

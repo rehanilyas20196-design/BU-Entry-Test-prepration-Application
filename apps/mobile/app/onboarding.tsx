@@ -7,6 +7,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
@@ -252,14 +253,17 @@ export default function OnboardingScreen() {
       case 'testDate':
         return (
           <View style={styles.optionsWrap}>
-            <TextField
-              label="Test date (YYYY-MM-DD)"
-              value={testDate}
-              onChangeText={setTestDate}
-              placeholder="2026-09-15"
-              autoCapitalize="none"
-              error={testDateError ?? undefined}
+            <DatePicker
+              label="When is your test?"
+              value={testDate || null}
+              onChange={(d) => setTestDate(d ?? '')}
+              error={testDateError}
             />
+            {testDate && !testDateError && (
+              <AppText variant="small" color="secondary">
+                Countdown starts: {testDate} ({new Date(`${testDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })})
+              </AppText>
+            )}
           </View>
         );
       default:
