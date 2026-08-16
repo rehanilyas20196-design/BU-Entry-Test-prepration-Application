@@ -1,64 +1,65 @@
 export type AccentColor = { main: string; soft: string; ring: string };
 
 export const accents = {
-  indigo: { main: '#4F46E5', soft: '#7C8FF0', ring: '#C7D2FE' },
-  violet: { main: '#6D28D9', soft: '#8B6FE8', ring: '#D8CFF7' },
-  blue: { main: '#3B5BD6', soft: '#7B6CE0', ring: '#CCD6FA' },
-  cyan: { main: '#0891B2', soft: '#3FB8D6', ring: '#C4ECF5' },
-  teal: { main: '#0E8A80', soft: '#37B4AA', ring: '#B2E5DF' },
-  amber: { main: '#B97A1E', soft: '#DEA24C', ring: '#F1DDB4' },
-  orange: { main: '#C96A2E', soft: '#E68F52', ring: '#F7D9C2' },
-  emerald: { main: '#0F8B5F', soft: '#46BD8F', ring: '#BDE9D8' },
-  pink: { main: '#B34567', soft: '#D97893', ring: '#F3D2DC' },
-  slate: { main: '#4F586C', soft: '#7B869E', ring: '#CDD3E0' },
+  indigo: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
+  violet: { main: '#7C3AED', soft: '#A78BFA', ring: '#EDE9FE' },
+  blue: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
+  cyan: { main: '#0891B2', soft: '#22D3EE', ring: '#CFFAFE' },
+  teal: { main: '#0D9488', soft: '#2DD4BF', ring: '#CCFBF1' },
+  amber: { main: '#D97706', soft: '#F59E0B', ring: '#FEF3C7' },
+  orange: { main: '#EA580C', soft: '#FB923C', ring: '#FFEDD5' },
+  emerald: { main: '#059669', soft: '#34D399', ring: '#D1FAE5' },
+  pink: { main: '#DB2777', soft: '#F472B6', ring: '#FCE7F3' },
+  slate: { main: '#64748B', soft: '#94A3B8', ring: '#E2E8F0' },
 } as const satisfies Record<string, AccentColor>;
 
 export const radiusTokens = {
-  card: 22,
-  panel: 20,
-  tile: 16,
-  control: 14,
-  squircle: 13,
+  card: 12,
+  panel: 12,
+  tile: 12,
+  control: 8,
+  squircle: 10,
   pill: 999,
 };
 
 export const shadowTokens = {
   soft: {
-    color: '#3A3F78',
-    radius: 16,
-    offset: { width: 0, height: 9 },
-    elevation: 6,
+    color: '#0F172A',
+    radius: 3,
+    offset: { width: 0, height: 1 },
+    elevation: 1,
   },
   float: {
-    color: '#2E2A63',
-    radius: 24,
-    offset: { width: 0, height: 14 },
-    elevation: 12,
+    color: '#0F172A',
+    radius: 8,
+    offset: { width: 0, height: 2 },
+    elevation: 3,
   },
 };
 
 export const timingTokens = {
-  micro: 160,
-  fast: 220,
-  base: 360,
-  slow: 520,
-  entrance: 620,
-  stagger: 70,
+  micro: 150,
+  fast: 200,
+  base: 250,
+  slow: 300,
+  entrance: 300,
+  stagger: 40,
 };
 
 export const glassTokens = {
   light: {
-    surface: ['rgba(255,255,255,0.74)', 'rgba(245,247,253,0.55)'] as [string, string],
-    gloss: ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0)'] as [string, string],
-    border: 'rgba(255,255,255,0.9)',
-    iconBg: 'rgba(255,255,255,0.34)',
-    iconBorder: 'rgba(255,255,255,0.55)',
+    surface: ['rgba(255,255,255,0.92)', 'rgba(248,250,252,0.96)'] as [string, string],
+    gloss: ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0)'] as [string, string],
+    border: 'rgba(226,232,240,0.9)',
+    iconBg: 'rgba(255,255,255,0.6)',
+    iconBorder: 'rgba(226,232,240,0.9)',
   },
   dark: {
-    surface: ['rgba(28,35,60,0.72)', 'rgba(19,24,44,0.58)'] as [string, string],
-    gloss: ['rgba(255,255,255,0.09)', 'rgba(255,255,255,0)'] as [string, string],
-    border: 'rgba(255,255,255,0.13)',
-    iconBg: 'rgba(255,255,255,0.08)',
-    iconBorder: 'rgba(255,255,255,0.16)',
+    surface: ['rgba(248,250,252,0.96)', 'rgba(255,255,255,0.92)'] as [string, string],
+    gloss: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0)'] as [string, string],
+    border: 'rgba(226,232,240,0.9)',
+    iconBg: 'rgba(255,255,255,0.6)',
+    iconBorder: 'rgba(226,232,240,0.9)',
   },
 };
+

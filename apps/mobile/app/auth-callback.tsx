@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
@@ -23,11 +23,12 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ActivityIndicator color={colors.primary} />
       <AppText variant="body" color="secondary">Completing sign in…</AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
 });

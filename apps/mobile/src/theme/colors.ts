@@ -1,61 +1,66 @@
+/**
+ * BUET Prep AI — design tokens (light, professional, academic).
+ *
+ * One blue primary accent. Neutral grays for structure.
+ * Semantic colors only where meaningful (success / warning / danger / info).
+ */
+
 export const palette = {
-  // Primary (deep indigo — professional, academic)
-  primary: '#4F46E5',
-  primaryDark: '#4338CA',
-  primaryLight: '#EEF2FF',
-  // Secondary (electric violet)
-  secondary: '#7C3AED',
-  secondaryLight: '#F3EEFF',
-  // Accent (soft blue)
-  accent: '#38BDF8',
-  accentLight: '#E0F2FE',
+  // Primary — single blue accent
+  primary: '#2563EB',
+  primaryDark: '#1D4ED8',
+  primaryLight: '#DBEAFE',
+  // Accent — same blue (one accent, applied consistently)
+  accent: '#2563EB',
+  accentLight: '#DBEAFE',
+  // Secondary — neutral slate, not a competing accent
+  secondary: '#64748B',
+  secondaryLight: '#F1F5F9',
+  // Legacy gradient stops (kept for compatibility; resolved to blue)
+  gradientStart: '#2563EB',
+  gradientMid: '#3B82F6',
+  gradientEnd: '#60A5FA',
+  heroGradientStart: '#2563EB',
+  heroGradientMid: '#3B82F6',
+  heroGradientEnd: '#60A5FA',
   // Legacy accent (teal) — kept for compatibility
   accentTeal: '#0D9488',
-  // Gradient stops
-  gradientStart: '#6366F1',
-  gradientMid: '#7C3AED',
-  gradientEnd: '#A855F7',
-  heroGradientStart: '#4F46E5',
-  heroGradientMid: '#7C3AED',
-  heroGradientEnd: '#A855F7',
   // Semantic
   success: '#16A34A',
   successLight: '#DCFCE7',
-  danger: '#E11D48',
-  dangerLight: '#FFE4E6',
+  danger: '#DC2626',
+  dangerLight: '#FEE2E2',
   warning: '#D97706',
   warningLight: '#FEF3C7',
-  info: '#0284C7',
-  infoLight: '#E0F2FE',
-  // Neutrals (light)
-  background: '#F6F7FB',
+  info: '#2563EB',
+  infoLight: '#DBEAFE',
+  // Neutrals
+  background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceAlt: '#EEF0F6',
-  border: '#E4E7F0',
-  text: '#101428',
-  textSecondary: '#4B5268',
-  textMuted: '#969DB4',
-  // Glass overlays
-  glassLight: 'rgba(255,255,255,0.62)',
-  glassBorderLight: 'rgba(255,255,255,0.75)',
-  // Neutrals (dark)
-  backgroundDark: '#0A0E1F',
-  surfaceDark: '#141A33',
-  surfaceAltDark: '#1D2542',
-  borderDark: '#27304F',
-  textDark: '#E6E9F5',
-  textSecondaryDark: '#A5AECB',
-  textMutedDark: '#6C7592',
-  // Glass overlays (dark)
-  glassDark: 'rgba(20,26,51,0.6)',
-  glassBorderDark: 'rgba(255,255,255,0.12)',
-  // Dark gradient stops
-  gradientStartDark: '#6366F1',
-  gradientMidDark: '#7C3AED',
-  gradientEndDark: '#C026D3',
-  heroGradientStartDark: '#312E81',
-  heroGradientMidDark: '#6D28D9',
-  heroGradientEndDark: '#A855F7',
+  surfaceAlt: '#F1F5F9',
+  border: '#E2E8F0',
+  text: '#111827',
+  textSecondary: '#4B5563',
+  textMuted: '#94A3B8',
+  // Glass overlays (kept for compatibility)
+  glassLight: 'rgba(255,255,255,0.92)',
+  glassBorderLight: 'rgba(226,232,240,0.9)',
+  // Neutrals (dark) — kept for compatibility; app is light-only
+  backgroundDark: '#F8FAFC',
+  surfaceDark: '#FFFFFF',
+  surfaceAltDark: '#F1F5F9',
+  borderDark: '#E2E8F0',
+  textDark: '#111827',
+  textSecondaryDark: '#4B5563',
+  textMutedDark: '#94A3B8',
+  glassDark: 'rgba(255,255,255,0.92)',
+  glassBorderDark: 'rgba(226,232,240,0.9)',
+  gradientStartDark: '#2563EB',
+  gradientMidDark: '#3B82F6',
+  gradientEndDark: '#60A5FA',
+  heroGradientStartDark: '#2563EB',
+  heroGradientMidDark: '#3B82F6',
+  heroGradientEndDark: '#60A5FA',
 };
 
 export type ThemeColors = {
@@ -126,36 +131,5 @@ export const lightColors: ThemeColors = {
   isDark: false,
 };
 
-export const darkColors: ThemeColors = {
-  background: palette.backgroundDark,
-  surface: palette.surfaceDark,
-  surfaceAlt: palette.surfaceAltDark,
-  border: palette.borderDark,
-  text: palette.textDark,
-  textSecondary: palette.textSecondaryDark,
-  textMuted: palette.textMutedDark,
-  primary: '#818CF8',
-  primaryDark: '#6366F1',
-  primaryLight: '#1E1B4B',
-  secondary: '#A78BFA',
-  secondaryLight: '#2E1A5E',
-  accent: '#2DD4BF',
-  accentLight: '#0C4A6E',
-  gradientStart: palette.gradientStartDark,
-  gradientMid: palette.gradientMidDark,
-  gradientEnd: palette.gradientEndDark,
-  heroGradientStart: palette.heroGradientStartDark,
-  heroGradientMid: palette.heroGradientMidDark,
-  heroGradientEnd: palette.heroGradientEndDark,
-  glass: palette.glassDark,
-  glassBorder: palette.glassBorderDark,
-  success: '#4ADE80',
-  successLight: '#14532D',
-  danger: '#F87171',
-  dangerLight: '#7F1D1D',
-  warning: '#FBBF24',
-  warningLight: '#78350F',
-  info: '#38BDF8',
-  infoLight: '#0C4A6E',
-  isDark: true,
-};
+/** Dark theme maps to the same light palette — the app is light-only. */
+export const darkColors: ThemeColors = { ...lightColors, isDark: true };

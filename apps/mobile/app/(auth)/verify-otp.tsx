@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Pressable, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View, Pressable, TextInput } from 'react-native';
+import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
 import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { AppText } from '@/components/ui/AppText';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { FloatingParticles } from '@/components/ui/FloatingParticles';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
-import { palette } from '@/theme/colors';
 
 export default function VerifyOtpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { isWeb, isDesktop } = useResponsive();
   const params = useLocalSearchParams<{ email?: string; type?: 'signup' | 'email' }>();
   const email = (params.email ?? '').trim();
   const otpType = params.type === 'email' ? 'email' : 'signup';
@@ -48,7 +48,7 @@ export default function VerifyOtpScreen() {
       return;
     }
     if (otp.trim().length < 6) {
-      setError('Please enter the 6-digit code sent to your email.');
+      setError('Enter the 6-digit code sent to your email.');
       return;
     }
     try {
@@ -75,27 +75,23 @@ export default function VerifyOtpScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <LinearGradient
-        colors={[palette.backgroundDark, palette.surfaceDark, palette.backgroundDark]}
-        style={StyleSheet.absoluteFill}
-      />
-      <FloatingParticles count={16} color="#A78BFA" />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScreenScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={[styles.authCol, isWeb && isDesktop && styles.authColWide]}>
         <View style={styles.header}>
           <View style={styles.logoRing}>
-            <Feather name="shield" size={26} color="#A78BFA" />
+            <Feather name="shield" size={22} color={colors.primary} />
           </View>
-          <AppText variant="h1" style={styles.title}>{isLogin ? 'Check your email' : 'Confirm your account'}</AppText>
-          <AppText variant="body" style={styles.subtitle}>
+          <AppText variant="h1" style={[styles.title, { color: colors.text }]}>{isLogin ? 'Check your email' : 'Confirm your account'}</AppText>
+          <AppText variant="body" color="secondary" style={styles.subtitle}>
             We sent a 6-digit code to{' '}
-            <AppText variant="bodyMedium" style={styles.highlight}>{maskedEmail}</AppText>. Enter it below to{isLogin ? ' sign in' : ' confirm your account'}.
+            <AppText variant="bodyMedium" style={{ color: colors.text }}>{maskedEmail}</AppText>. Enter it below to{isLogin ? ' sign in' : ' confirm your account'}.
           </AppText>
         </View>
 
-        <GlassCard style={styles.formCard}>
+        <Card style={styles.formCard}>
           {error && (
             <View style={[styles.errorBox, { backgroundColor: colors.dangerLight, borderColor: colors.danger }]}>
               <Feather name="alert-circle" size={15} color={colors.danger} />
@@ -104,8 +100,8 @@ export default function VerifyOtpScreen() {
           )}
 
           <View style={styles.otpLabel}>
-            <Feather name="key" size={16} color={colors.textMuted} />
-            <AppText variant="label" color="secondary">Verification code</AppText>
+            <Feather name="key" size={16} color={colors.textSecondary} />
+            <AppText variant="label" style={{ color: colors.text }}>Verification code</AppText>
           </View>
           <View
             style={[
@@ -125,13 +121,13 @@ export default function VerifyOtpScreen() {
               style={[styles.otpInput, { color: colors.text }]}
             />
             {otp.length === 6 && (
-              <View style={styles.otpComplete}>
+              <View style={[styles.otpComplete, { backgroundColor: colors.success }]}>
                 <Feather name="check" size={14} color="#FFF" />
               </View>
             )}
           </View>
 
-          <AnimatedButton title={isLogin ? 'Verify & Sign In' : 'Verify & Confirm Account'} onPress={handleVerify} loading={loading} size="lg" />
+          <Button title={isLogin ? 'Verify and sign in' : 'Verify and confirm account'} onPress={handleVerify} loading={loading} size="lg" />
 
           <View style={styles.resendRow}>
             {countdown > 0 ? (
@@ -151,44 +147,45 @@ export default function VerifyOtpScreen() {
               <AppText variant="bodyMedium" color="primary">Go back</AppText>
             </Link>
           </View>
-        </GlassCard>
-      </ScrollView>
+        </Card>
+        </View>
+      </ScreenScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 28 },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 24 },
+  authCol: { width: '100%', gap: 24 },
+  authColWide: { maxWidth: 440, alignSelf: 'center' },
   header: { gap: 6, alignItems: 'center' },
   logoRing: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 56, height: 56, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: '#E2E8F0',
     marginBottom: 6,
   },
-  title: { color: '#FFF' },
-  subtitle: { color: 'rgba(255,255,255,0.72)', textAlign: 'center' },
-  highlight: { color: '#A78BFA', fontWeight: '700' },
-  formCard: { padding: 20, gap: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)' },
+  title: {},
+  subtitle: { textAlign: 'center', maxWidth: 320 },
+  formCard: { padding: 20, gap: 16 },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 12, borderRadius: 10, borderWidth: 1,
+    padding: 12, borderRadius: 8, borderWidth: 1,
   },
   otpLabel: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   otpInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 16,
   },
-  otpInput: { flex: 1, fontSize: 24, letterSpacing: 12, paddingVertical: 14, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  otpInput: { flex: 1, fontSize: 24, letterSpacing: 12, paddingVertical: 12, textAlign: 'center', fontVariant: ['tabular-nums'] },
   otpComplete: {
     width: 24, height: 24, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#22C55E',
   },
   resendRow: { alignItems: 'center', minHeight: 24 },
   footerRow: { flexDirection: 'row', justifyContent: 'center' },

@@ -1,11 +1,9 @@
-import { useColorScheme } from 'react-native';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { darkColors, lightColors, ThemeColors } from '@/theme/colors';
+import { lightColors, ThemeColors } from '@/theme/colors';
 
+/**
+ * The app is light-only (professional, academic look).
+ * Dark scheme is intentionally disabled.
+ */
 export function useTheme(): { colors: ThemeColors; isDark: boolean } {
-  const system = useColorScheme();
-  const preference = useSettingsStore((s) => s.themePreference);
-  const isDark =
-    preference === 'system' ? system === 'dark' : preference === 'dark';
-  return { colors: isDark ? darkColors : lightColors, isDark };
+  return { colors: lightColors, isDark: false };
 }

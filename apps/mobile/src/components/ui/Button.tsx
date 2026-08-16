@@ -1,19 +1,16 @@
-import React from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { radius, motion } from '@/theme/theme';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {
   title: string;
   onPress?: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
@@ -21,6 +18,8 @@ export interface ButtonProps {
   fullWidth?: boolean;
   testID?: string;
 }
+
+const HEIGHTS: Record<ButtonSize, number> = { sm: 36, md: 40, lg: 44 };
 
 export function Button({
   title,
@@ -35,71 +34,78 @@ export function Button({
   testID,
 }: ButtonProps) {
   const { colors } = useTheme();
+  const press = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(press, { toValue: 0, duration: 0, useNativeDriver: true }).start();
+  }, [press]);
+
+  const isPrimary = variant === 'primary';
+  const isDanger = variant === 'danger';
 
   const background =
-    variant === 'primary'
-      ? colors.primary
-      : variant === 'danger'
-        ? colors.danger
-        : variant === 'secondary'
-          ? colors.primaryLight
-          : 'transparent';
+    isPrimary ? colors.primary
+    : isDanger ? colors.danger
+    : variant === 'secondary' ? colors.primaryLight
+    : 'transparent';
 
   const textColor =
-    variant === 'primary' || variant === 'danger'
-      ? '#FFFFFF'
-      : variant === 'secondary'
-        ? colors.primary
-        : variant === 'outline'
-          ? colors.primary
-          : colors.textSecondary;
+    isPrimary || isDanger ? '#FFFFFF'
+    : variant === 'secondary' || variant === 'outline' ? colors.primary
+    : colors.textSecondary;
 
-  const borderColor = variant === 'outline' ? colors.primary : variant === 'ghost' ? 'transparent' : colors.border;
+  const borderColor = variant === 'outline' ? colors.primary : colors.border;
+  const borderWidth = variant === 'outline' ? 1 : variant === 'ghost' ? 0 : 1;
 
-  const padding =
-    size === 'sm' ? { paddingVertical: 8, paddingHorizontal: 14 } : size === 'lg' ? { paddingVertical: 16, paddingHorizontal: 24 } : { paddingVertical: 12, paddingHorizontal: 18 };
+  const fontSizes: Record<ButtonSize, number> = { sm: 14, md: 15, lg: 15 };
 
-  const font =
-    size === 'sm' ? 14 : size === 'lg' ? 17 : 16;
+  const opacity = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.85] });
 
   return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      disabled={disabled || loading}
-      style={({ pressed }) => [
-        styles.base,
-        padding,
-        fullWidth && styles.fullWidth,
-        { backgroundColor: background, borderColor, borderWidth: variant === 'outline' ? 1.5 : 0 },
-        pressed && !disabled && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-        (disabled || loading) && { opacity: 0.5 },
-        style,
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityState={{ disabled: disabled || loading, busy: loading }}
-    >
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <View style={styles.content}>
-          {icon}
-          <Text style={[styles.label, { color: textColor, fontSize: font }]}>{title}</Text>
-        </View>
-      )}
-    </Pressable>
+    <Animated.View style={[{ opacity, alignSelf: fullWidth ? 'stretch' : 'flex-start' }]}>
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        onPressIn={() => Animated.timing(press, { toValue: 1, duration: motion.fast, useNativeDriver: true }).start()}
+        onPressOut={() => Animated.timing(press, { toValue: 0, duration: motion.fast, useNativeDriver: true }).start()}
+        disabled={disabled || loading}
+        style={[
+          styles.base,
+          {
+            height: HEIGHTS[size],
+            paddingHorizontal: size === 'sm' ? 14 : size === 'lg' ? 24 : 20,
+            backgroundColor: background,
+            borderColor,
+            borderWidth,
+            opacity: disabled || loading ? 0.55 : 1,
+            width: fullWidth ? '100%' : undefined,
+          },
+          style,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      >
+        {loading ? (
+          <ActivityIndicator color={textColor} size="small" />
+        ) : (
+          <View style={styles.content}>
+            {icon}
+            <Text style={[styles.label, { color: textColor, fontSize: fontSizes[size] }]}>{title}</Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 14,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
-  fullWidth: { width: '100%' },
   content: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  label: { fontWeight: '700' },
+  label: { fontWeight: '500' },
 });

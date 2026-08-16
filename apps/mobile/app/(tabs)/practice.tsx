@@ -1,12 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
+import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
 import { SubjectTile } from '@/components/dashboard/SubjectTile';
 import { PracticeModeCard } from '@/components/dashboard/PracticeModeCard';
 import type { PracticeAccent, PracticeEffect, PracticeModeIcon } from '@/components/dashboard/PracticeModeCard';
-import { FadeInView } from '@/components/ui/Animated';
 import { SkeletonCard } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -42,13 +42,13 @@ interface PracticeMode {
 }
 
 const ACCENTS: Record<string, PracticeAccent> = {
-  amber: { main: '#B97A1E', soft: '#DDA04A', ring: '#F1D9A6' },
-  violet: { main: '#6D28D9', soft: '#7C8CF0', ring: '#C7D2FE' },
-  blue: { main: '#3F6FB5', soft: '#8492D8', ring: '#C9D4F5' },
-  teal: { main: '#0E8A80', soft: '#37B4AA', ring: '#B2E5DF' },
-  coral: { main: '#D96A4E', soft: '#EE9070', ring: '#F6CFC0' },
-  magenta: { main: '#8E2E8E', soft: '#BC66BB', ring: '#E5C1E4' },
-  slate: { main: '#4F586C', soft: '#7B869E', ring: '#CDD3E0' },
+  amber: { main: '#D97706', soft: '#F59E0B', ring: '#FEF3C7' },
+  violet: { main: '#7C3AED', soft: '#A78BFA', ring: '#EDE9FE' },
+  blue: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
+  teal: { main: '#0D9488', soft: '#2DD4BF', ring: '#CCFBF1' },
+  coral: { main: '#EA580C', soft: '#FB923C', ring: '#FFEDD5' },
+  magenta: { main: '#DB2777', soft: '#F472B6', ring: '#FCE7F3' },
+  slate: { main: '#64748B', soft: '#94A3B8', ring: '#E2E8F0' },
 };
 
 const PRACTICE_MODES: PracticeMode[] = [
@@ -111,97 +111,83 @@ export default function PracticeScreen() {
   }, [subjects, query]);
 
   return (
-    <ScrollView
+    <ScreenScrollView
       ref={scrollRef}
-      style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      <FadeInView>
-        <View style={styles.header}>
-          <AppText variant="h2">Practice</AppText>
-          <AppText variant="body" color="secondary">Sharpen your skills, one question at a time</AppText>
-        </View>
-      </FadeInView>
+      <View style={styles.header}>
+        <AppText variant="h2">Practice</AppText>
+        <AppText variant="body" color="secondary">Sharpen your skills, one question at a time</AppText>
+      </View>
 
-      <FadeInView delay={60}>
-        <View style={styles.section}>
-          <AppText variant="h3">Practice Modes</AppText>
-          <View style={styles.modeGrid}>
-            {PRACTICE_MODES.map((m, i) => (
-              <PracticeModeCard
-                key={m.key}
-                label={m.label}
-                subtitle={m.subtitle}
-                icon={m.icon}
-                accent={m.accent}
-                effect={m.effect}
-                wide={m.wide}
-                premium={m.premium}
-                index={i}
-                onPress={() => openMode(m)}
+      <View style={styles.section}>
+        <AppText variant="h3">Practice Modes</AppText>
+        <View style={styles.modeGrid}>
+          {PRACTICE_MODES.map((m) => (
+            <PracticeModeCard
+              key={m.key}
+              label={m.label}
+              subtitle={m.subtitle}
+              icon={m.icon}
+              accent={m.accent}
+              effect={m.effect}
+              wide={m.wide}
+              premium={m.premium}
+              index={0}
+              onPress={() => openMode(m)}
+            />
+          ))}
+        </View>
+      </View>
+
+      <TextField
+        label=""
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search subjects…"
+        autoCapitalize="none"
+        autoCorrect={false}
+        icon={<Feather name="search" size={18} color={colors.textMuted} />}
+      />
+
+      <View ref={subjectsRef} style={styles.section}>
+        <AppText variant="h3">Subjects</AppText>
+        {isLoading ? (
+          <View style={styles.skeletonRow}>
+            {[0, 1].map((_i) => (
+              <View key={_i} style={{ width: tileWidth }}>
+                <SkeletonCard lines={2} />
+              </View>
+            ))}
+          </View>
+        ) : error ? (
+          <ErrorState
+            title="Couldn't load subjects"
+            message="Please check your connection and try again."
+            onRetry={() => refetch()}
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="search"
+            title="No subjects found"
+            message={query ? `Nothing matches "${query}"` : 'No subjects available yet.'}
+          />
+        ) : (
+          <View style={styles.subjectGrid}>
+            {filtered.map((s) => (
+              <SubjectTile
+                key={s.id}
+                name={s.name}
+                questionCount={(s as any).question_count ?? s._count?.questions ?? 0}
+                style={{ width: tileWidth }}
+                onPress={() => router.push({ pathname: '/topics', params: { subjectId: s.id, subjectName: s.name } })}
               />
             ))}
           </View>
-        </View>
-      </FadeInView>
-
-      <FadeInView delay={120}>
-        <TextField
-          label=""
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search subjects…"
-          autoCapitalize="none"
-          autoCorrect={false}
-          icon={<Feather name="search" size={18} color={colors.textMuted} />}
-        />
-      </FadeInView>
-
-      <FadeInView
-        delay={180}
-        style={styles.section}
-      >
-        <View ref={subjectsRef}>
-          <View style={styles.section}>
-            <AppText variant="h3">Subjects</AppText>
-          {isLoading ? (
-            <View style={styles.skeletonRow}>
-              {[0, 1].map((_i) => (
-                <View key={_i} style={{ width: tileWidth }}>
-                  <SkeletonCard lines={2} />
-                </View>
-              ))}
-            </View>
-          ) : error ? (
-            <ErrorState
-              title="Couldn't load subjects"
-              message="Please check your connection and try again."
-              onRetry={() => refetch()}
-            />
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon="search"
-              title="No subjects found"
-              message={query ? `Nothing matches "${query}"` : 'No subjects available yet.'}
-            />
-          ) : (
-            <View style={styles.subjectGrid}>
-              {filtered.map((s) => (
-                <SubjectTile
-                  key={s.id}
-                  name={s.name}
-                  questionCount={(s as any).question_count ?? s._count?.questions ?? 0}
-                  style={{ width: tileWidth }}
-                  onPress={() => router.push({ pathname: '/topics', params: { subjectId: s.id, subjectName: s.name } })}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-        </View>
-      </FadeInView>
-    </ScrollView>
+        )}
+      </View>
+    </ScreenScrollView>
   );
 }
 

@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { AppText } from '@/components/ui/AppText';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { Button } from '@/components/ui/Button';
 import { useTheme } from '@/hooks/useTheme';
+import { radius } from '@/theme/theme';
 
 interface ErrorStateProps {
   title?: string;
@@ -17,7 +18,7 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry, s
   return (
     <View style={[styles.wrap, style]}>
       <View style={[styles.iconCircle, { backgroundColor: colors.dangerLight }]}>
-        <Feather name="cloud-off" size={34} color={colors.danger} />
+        <Feather name="cloud-off" size={30} color={colors.danger} />
       </View>
       <AppText variant="h3" style={styles.title}>
         {title}
@@ -29,7 +30,7 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry, s
       ) : null}
       {onRetry ? (
         <View style={styles.action}>
-          <AnimatedButton title="Try again" onPress={onRetry} size="sm" fullWidth={false} variant="outline" />
+          <Button title="Try again" onPress={onRetry} size="sm" fullWidth={false} variant="outline" />
         </View>
       ) : null}
     </View>
@@ -38,7 +39,14 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry, s
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
-  iconCircle: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   title: { textAlign: 'center' },
   message: { textAlign: 'center', maxWidth: 300 },
   action: { marginTop: 12 },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { typography } from '@/theme/theme';
 
 interface AppTextProps {
   children: React.ReactNode;
@@ -11,16 +12,16 @@ interface AppTextProps {
 }
 
 const variantToStyle = {
-  display: { fontSize: 32, lineHeight: 38, fontWeight: '800' as const },
-  h1: { fontSize: 28, lineHeight: 34, fontWeight: '800' as const },
-  h2: { fontSize: 22, lineHeight: 28, fontWeight: '700' as const },
-  h3: { fontSize: 18, lineHeight: 24, fontWeight: '700' as const },
-  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const },
-  bodyMedium: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const },
-  label: { fontSize: 14, lineHeight: 20, fontWeight: '600' as const },
-  caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const },
-  small: { fontSize: 12, lineHeight: 16, fontWeight: '400' as const },
-  micro: { fontSize: 11, lineHeight: 14, fontWeight: '600' as const },
+  display: typography.display,
+  h1: typography.h1,
+  h2: typography.h2,
+  h3: typography.h3,
+  body: typography.body,
+  bodyMedium: typography.bodyMedium,
+  label: typography.label,
+  caption: typography.caption,
+  small: typography.small,
+  micro: typography.micro,
 };
 
 export function AppText({ children, variant = 'body', color = 'text', numberOfLines, style }: AppTextProps) {

@@ -1,49 +1,35 @@
-import React, { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import React from 'react';
+import { Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { AppText } from '@/components/ui/AppText';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { ProgressRing } from '@/components/ui/ProgressRing';
-import { AnimatedProgressBar } from '@/components/ui/Animated';
-import { FloatingParticles } from '@/components/ui/FloatingParticles';
-import { GradientBackground } from '@/components/ui/GradientBackground';
-import { FadeInView, AnimatedNumber } from '@/components/ui/Animated';
-import { Reveal } from '@/components/ui/Reveal';
-import { Float3D } from '@/components/ui/Float3D';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { StatCard } from '@/components/ui/StatCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SubjectCard } from '@/components/dashboard/SubjectCard';
 import { SkeletonCard } from '@/components/ui/SkeletonLoader';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { Feather } from '@expo/vector-icons';
-import { GlassPanel } from '@/components/ui/GlassPanel';
-import { GradientCTA } from '@/components/ui/GradientCTA';
-import { accents } from '@/theme/tokens';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
 import type { QuickActionAccent, QuickActionTone, QuickActionIcon } from '@/components/dashboard/QuickActionCard';
 import { PremiumCard } from '@/components/dashboard/PremiumCard';
 import { DownloadAppBanner } from '@/components/dashboard/DownloadAppBanner';
 
 const ACCENTS: Record<string, QuickActionAccent> = {
-  indigo: { main: '#6366F1', soft: '#818CF8', ring: '#C7D2FE' },
-  blue: { main: '#0EA5E9', soft: '#38BDF8', ring: '#BAE6FD' },
-  amber: { main: '#D97706', soft: '#F59E0B', ring: '#FDE68A' },
-  rose: { main: '#E11D48', soft: '#F43F5E', ring: '#FECDD3' },
-  emerald: { main: '#059669', soft: '#10B981', ring: '#A7F3D0' },
-  pink: { main: '#DB2777', soft: '#EC4899', ring: '#FBCFE8' },
-  cyan: { main: '#0891B2', soft: '#06B6D4', ring: '#A5F3FC' },
+  indigo: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
+  blue: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
+  amber: { main: '#D97706', soft: '#F59E0B', ring: '#FEF3C7' },
+  rose: { main: '#DC2626', soft: '#F87171', ring: '#FEE2E2' },
+  emerald: { main: '#059669', soft: '#34D399', ring: '#D1FAE5' },
+  pink: { main: '#DB2777', soft: '#F472B6', ring: '#FCE7F3' },
+  cyan: { main: '#0891B2', soft: '#22D3EE', ring: '#CFFAFE' },
   slate: { main: '#64748B', soft: '#94A3B8', ring: '#E2E8F0' },
 };
 
@@ -105,20 +91,18 @@ function TopicRow({
 }) {
   const { colors } = useTheme();
   return (
-    <GlassCard style={[styles.topicRow, { borderColor: `${color}40` }]}>
-      <View style={[styles.topicIconWrap, { backgroundColor: `${color}1F`, borderColor: `${color}45` }]}>
+    <Card style={styles.topicRow}>
+      <View style={[styles.topicIconWrap, { backgroundColor: `${color}14`, borderColor: `${color}40` }]}>
         <Feather name={icon} size={16} color={color} />
       </View>
       <View style={styles.topicContent}>
         <View style={styles.topicHeader}>
           <AppText variant="bodyMedium" numberOfLines={1} style={styles.topicName}>{name}</AppText>
-          <View style={[styles.topicPill, { backgroundColor: `${color}1F` }]}>
-            <AppText variant="label" style={{ color }}>{Math.round(accuracy)}%</AppText>
-          </View>
+          <AppText variant="label" style={{ color }}>{Math.round(accuracy)}%</AppText>
         </View>
-        <AnimatedProgressBar progress={Math.min(1, accuracy / 100)} height={6} color={color} trackColor={colors.surfaceAlt} delay={150} />
+        <ProgressBar progress={Math.min(1, accuracy / 100)} height={6} color={color} trackColor={colors.surfaceAlt} />
       </View>
-    </GlassCard>
+    </Card>
   );
 }
 
@@ -126,7 +110,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const session = useAuthStore((s) => s.session);
-  const { width } = useWindowDimensions();
+  const { isWeb, isDesktop } = useResponsive();
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -179,154 +163,54 @@ export default function HomeScreen() {
     { label: 'Admission Guide', subtitle: 'Bahria info', icon: 'map-marker-path', accent: ACCENTS.cyan, tone: 'info', badge: 'open-in-new', route: () => router.push('/(tabs)/guide') },
     { label: 'More', subtitle: 'Settings', icon: 'dots-horizontal', accent: ACCENTS.slate, tone: 'utility', route: () => router.push('/(tabs)/profile') },
   ];
-    const cardWidth = Math.min((width - 40 - 12) / 2, 220);
-
-  const reduced = useReducedMotion();
-  const scrollY = useSharedValue(0);
-  const heroFloat = useSharedValue(0);
-  const heroBg = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((e) => {
-    scrollY.value = e.contentOffset.y;
-  });
-
-  useEffect(() => {
-    if (reduced) {
-      heroFloat.value = 0;
-      heroBg.value = 0;
-      return;
-    }
-    heroFloat.value = withRepeat(withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.sin) }), -1, true);
-    heroBg.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [reduced, heroFloat, heroBg]);
-
-  const heroMotion = useAnimatedStyle(() => ({
-    opacity: reduced ? 1 : 1 - Math.min(scrollY.value * 0.0014, 0.45),
-    transform: [
-      { perspective: 900 },
-      { rotateX: `${Math.min(scrollY.value * 0.02, 7)}deg` },
-      { translateY: reduced ? 0 : -Math.sin(heroFloat.value * Math.PI) * 6 },
-    ],
-  }));
-
-  const heroBgMotion = useAnimatedStyle(() => ({
-    transform: [
-      { scale: reduced ? 1.16 : 1.2 + heroBg.value * 0.06 },
-      { translateX: reduced ? -52 : -52 - heroBg.value * 6 },
-      { translateY: reduced ? -6 : -6 },
-    ],
-  }));
-
-  const bgColors = colors.isDark
-    ? ([colors.heroGradientStart, colors.gradientMid, colors.heroGradientEnd] as [string, string, string])
-    : (['#FFFFFF', '#EEF2FF', '#F6F7FB'] as [string, string, string]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <GradientBackground colors={bgColors} animated>
-        <Animated.ScrollView
-          contentContainerStyle={styles.container}
-          showsVerticalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-        >
-      <FadeInView>
-        <Animated.View style={heroMotion}>
-          <View style={styles.heroWrap}>
-            <View style={styles.heroShadow} />
-            <Animated.View style={styles.hero}>
-              <Animated.Image
-                source={require('../../assets/home-hero.jpg')}
-                blurRadius={1}
-                style={[StyleSheet.absoluteFill, heroBgMotion]}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['rgba(16,14,44,0.05)', 'rgba(24,17,58,0.22)', 'rgba(14,10,38,0.68)'] as [string, string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <FloatingParticles count={8} color="#FFFFFF" />
-
-              <View style={styles.heroGlass}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0)'] as [string, string]}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.heroTop}>
-                  <AppText variant="caption" style={[styles.white70, styles.heroTextShadow]}>
-                    {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </AppText>
-                  <View style={styles.heroBadges}>
-                    {streak > 0 && (
-                      <View style={styles.streakBadge}>
-                        <Feather name="zap" size={12} color="#FDE68A" />
-                        <AppText variant="label" style={styles.whiteText}>{streak}d</AppText>
-                      </View>
-                    )}
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Level ${level}`}
-                      style={({ pressed }) => [styles.levelBadge, pressed && styles.levelBadgePressed]}
-                    >
-                      <Feather name="award" size={12} color="#FFFFFF" />
-                      <AppText variant="label" style={styles.whiteText}>Lv {level}</AppText>
-                    </Pressable>
-                  </View>
-                </View>
-
-                <View style={styles.greetingBlock}>
-                  <AppText variant="h1" style={[styles.whiteText, styles.heroTextShadow]}>{`${greeting()}, ${firstName}`}</AppText>
-                  <AppText variant="body" style={[styles.white80, styles.heroTextShadow]}>Let's make today count — your goal awaits.</AppText>
-                </View>
-
-                <View style={styles.heroDivider} />
-
-                <View style={styles.countdownRow}>
-                  <View style={styles.countdownNumWrap}>
-                    {days !== null ? (
-                      <AnimatedNumber value={Math.max(0, days)} delay={300} style={[styles.countdownNum, styles.heroTextShadow]} />
-                    ) : (
-                      <AppText variant="display" style={[styles.whiteText, styles.heroTextShadow]}>—</AppText>
-                    )}
-                  </View>
-                  <View style={styles.countdownMeta}>
-                    <AppText variant="h3" style={[styles.whiteText, styles.heroTextShadow]}>days</AppText>
-                    <AppText variant="caption" style={[styles.white70, styles.heroTextShadow, styles.countdownLabel]}>until BUET test</AppText>
-                  </View>
-                </View>
-
-                {days !== null && days <= 7 && (
-                  <View style={styles.urgentPill}>
-                    <Feather name="alert-circle" size={13} color="#FFF" />
-                    <AppText variant="small" style={styles.whiteText}>Test is near — stay focused!</AppText>
-                  </View>
-                )}
-              </View>
-            </Animated.View>
+      <ScreenScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <AppText variant="caption" color="muted">
+              {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </AppText>
+            <AppText variant="h2">{`${greeting()}, ${firstName}`}</AppText>
           </View>
-        </Animated.View>
-      </FadeInView>
+          <View style={styles.headerBadges}>
+            {streak > 0 && (
+              <Badge label={`${streak}d streak`} tone="warning" />
+            )}
+            <Badge label={`Level ${level}`} tone="primary" />
+          </View>
+        </View>
 
-      <DownloadAppBanner style={styles.downloadBanner} />
+        <DownloadAppBanner style={styles.downloadBanner} />
 
-      <FadeInView delay={110}>
-        <Float3D style={styles.summaryRow} phase={0.1}>
-          <GlassPanel
-            accent={[accents.indigo.soft, accents.indigo.main]}
-            accentOpacity={0.07}
-            radius={20}
-            contentStyle={styles.goalCardContent}
-            style={styles.goalCard}
-          >
-            <View style={styles.goalHeader}>
-              <AppText variant="caption" color="muted">Today's goal</AppText>
-              {goalReached && (
-                <View style={styles.goalDonePill}>
-                  <Feather name="check-circle" size={12} color={colors.success} />
-                  <AppText variant="micro" color="success">Goal reached</AppText>
-                </View>
+        {days !== null && (
+          <Card style={styles.countdownCard}>
+            <View style={styles.countdownHeader}>
+              <AppText variant="bodyMedium">Days until BUET test</AppText>
+              {days <= 7 && (
+                <Badge label="Test is near" tone="danger" />
               )}
+            </View>
+            <View style={styles.countdownBody}>
+              <AppText variant="display" style={{ color: colors.text, fontVariant: ['tabular-nums'] }}>
+                {Math.max(0, days)}
+              </AppText>
+              <AppText variant="caption" color="muted" style={styles.countdownMeta}>
+                {days < 0 ? 'Your test date has passed — update it in settings.' : 'Keep a steady pace — consistency matters.'}
+              </AppText>
+            </View>
+          </Card>
+        )}
+
+        <View style={styles.summaryRow}>
+          <Card style={styles.goalCard}>
+            <View style={styles.cardTitleRow}>
+              <AppText variant="label">Today's goal</AppText>
+              {goalReached && <Badge label="Goal reached" tone="success" />}
             </View>
             <View style={styles.goalNumbers}>
               <AppText variant="display" style={{ color: goalReached ? colors.success : colors.text }}>
@@ -334,48 +218,37 @@ export default function HomeScreen() {
               </AppText>
               <AppText variant="caption" color="secondary">/ {TODAY_TARGET} questions</AppText>
             </View>
-            <AnimatedProgressBar
-              progress={targetProgress}
-              height={10}
-              delay={250}
-              gradient={goalReached ? [colors.success, '#22C55E'] : [accents.indigo.soft, accents.indigo.main, accents.violet.soft]}
-            />
+            <ProgressBar progress={targetProgress} height={8} color={goalReached ? colors.success : colors.primary} />
             <AppText variant="small" color="muted">
               {goalReached ? 'Amazing work — keep the streak alive!' : `${TODAY_TARGET - todayDone} more to reach your goal`}
             </AppText>
-          </GlassPanel>
+          </Card>
 
           <Pressable
             onPress={() => router.push('/performance')}
             accessibilityRole="button"
-            accessibilityLabel="View performance dashboard"
-            style={({ pressed }) => pressed && { opacity: 0.9 }}
+            accessibilityLabel="View performance"
+            style={({ pressed }) => [styles.accuracyCard, pressed && { opacity: 0.9 }]}
           >
-            <GlassPanel radius={20} contentStyle={styles.accuracyCardContent} style={styles.accuracyCard}>
-              <ProgressRing
-                progress={accuracy / 100}
-                size={88}
-                strokeWidth={8}
-                gradient={[accents.indigo.main, accents.violet.main]}
-                glow
-                sublabel="Accuracy"
-              />
-              <AppText variant="micro" color="muted">Performance</AppText>
-            </GlassPanel>
+            <Card style={styles.accuracyCardInner}>
+              <AppText variant="label">Accuracy</AppText>
+              <AppText variant="display" style={{ color: colors.primary, fontVariant: ['tabular-nums'] }}>
+                {accuracy}%
+              </AppText>
+              <ProgressBar progress={Math.min(1, accuracy / 100)} height={6} color={colors.primary} />
+              <AppText variant="small" color="muted">Performance</AppText>
+            </Card>
           </Pressable>
-        </Float3D>
-      </FadeInView>
+        </View>
 
-      <FadeInView delay={180}>
-        <GradientCTA
+        <Button
           title="Continue studying"
-          icon="play"
+          icon={<Feather name="play" size={16} color="#FFFFFF" />}
+          size="lg"
           onPress={() => router.push('/practice')}
         />
-      </FadeInView>
 
-      <FadeInView delay={240}>
-        <Float3D style={styles.statsGrid} phase={0.45}>
+        <View style={styles.statsGrid}>
           <StatCard
             label="Questions solved"
             value={data?.stats?.total_questions_answered ?? 0}
@@ -389,20 +262,16 @@ export default function HomeScreen() {
             accent={colors.warning}
             sub="Days in a row"
           />
-        </Float3D>
-      </FadeInView>
+        </View>
 
-      <FadeInView delay={300}>
         <PremiumCard onPress={() => router.push('/premium')} />
-      </FadeInView>
 
-      <Reveal scrollY={scrollY} index={3}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <AppText variant="h3">Quick actions</AppText>
           </View>
           <View style={styles.actionGrid}>
-            {quickActions.map((a, i) => (
+            {quickActions.map((a) => (
               <QuickActionCard
                 key={a.label}
                 label={a.label}
@@ -411,15 +280,14 @@ export default function HomeScreen() {
                 accent={a.accent}
                 tone={a.tone}
                 badge={a.badge}
-                index={i}
+                index={0}
                 onPress={a.route}
+                style={isWeb && isDesktop ? { flexBasis: '48%' } : undefined}
               />
             ))}
           </View>
         </View>
-      </Reveal>
 
-      <Reveal scrollY={scrollY} index={4}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <AppText variant="h3">Subjects</AppText>
@@ -430,28 +298,29 @@ export default function HomeScreen() {
           {subjectsLoading ? (
             <View style={styles.subjectRow}>
               {[0, 1, 2].map((i) => (
-                <View key={i} style={{ width: cardWidth }}>
-                  <SkeletonCard lines={2} />
-                </View>
+                <SkeletonCard key={i} lines={2} />
               ))}
             </View>
-          ) : (
+          ) : (subjects?.length ?? 0) > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subjectRow}>
-              {(subjects ?? []).map((s, i) => (
+              {subjects!.map((s) => (
                 <SubjectCard
                   key={s.id}
-                  index={i}
                   name={s.name}
                   questionCount={s.question_count}
                   onPress={() => router.push({ pathname: '/topics', params: { subjectId: s.id, subjectName: s.name } })}
                 />
               ))}
             </ScrollView>
+          ) : (
+            <EmptyState
+              icon="book-open"
+              title="No subjects yet"
+              message="Subjects will appear here once available."
+            />
           )}
         </View>
-      </Reveal>
 
-      <Reveal scrollY={scrollY} index={5}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Feather name="trending-down" size={16} color={colors.danger} />
@@ -474,9 +343,7 @@ export default function HomeScreen() {
             <AppText variant="body" color="muted">Answer a few questions to see your weak areas.</AppText>
           )}
         </View>
-      </Reveal>
 
-      <Reveal scrollY={scrollY} index={6}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Feather name="trending-up" size={16} color={colors.success} />
@@ -492,91 +359,34 @@ export default function HomeScreen() {
             <AppText variant="body" color="muted">Keep practicing to build your strengths.</AppText>
           )}
         </View>
-      </Reveal>
-    </Animated.ScrollView>
-      </GradientBackground>
+      </ScreenScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 110, gap: 26 },
+  container: { padding: 20, paddingBottom: 110, gap: 24 },
   downloadBanner: { marginTop: 2 },
-  heroWrap: { position: 'relative' },
-  heroShadow: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    borderRadius: 24,
-    backgroundColor: 'rgba(99,102,241,0.02)',
-    shadowColor: '#2E2A63',
-    shadowOpacity: 1,
-    shadowRadius: 26,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 12,
-  },
-  hero: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
-  heroGlass: {
-    margin: 12,
-    padding: 18,
-    gap: 18,
-    borderRadius: 18,
-    backgroundColor: 'rgba(12,10,34,0.18)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.24)',
-    overflow: 'hidden',
-  },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  heroBadges: { flexDirection: 'row', gap: 8 },
-  streakBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.26)',
-  },
-  levelBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.26)',
-  },
-  levelBadgePressed: { transform: [{ scale: 0.94 }] },
-  whiteText: { color: '#FFF' },
-  white70: { color: 'rgba(255,255,255,0.72)' },
-  white80: { color: 'rgba(255,255,255,0.82)' },
-  heroTextShadow: {
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  greetingBlock: { gap: 4, marginTop: 2 },
-  heroDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.22)' },
-  countdownRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
-  countdownNumWrap: { minWidth: 84 },
-  countdownNum: { fontSize: 54, lineHeight: 58, fontWeight: '800', color: '#FFF', fontVariant: ['tabular-nums'] },
-  countdownLabel: { letterSpacing: 0.4 },
-  countdownMeta: { paddingBottom: 4, gap: 2 },
-  urgentPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  headerText: { flex: 1, gap: 2 },
+  headerBadges: { flexDirection: 'row', gap: 8, paddingTop: 2, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  countdownCard: { gap: 8 },
+  countdownHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  countdownBody: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+  countdownMeta: { flex: 1 },
   summaryRow: { flexDirection: 'row', gap: 12 },
-  goalCard: { flex: 1.6 },
-  goalCardContent: { padding: 18, gap: 10 },
-  goalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  goalDonePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(22,163,74,0.12)' },
-  goalNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  goalCard: { flex: 1.6, gap: 8 },
   accuracyCard: { flex: 1 },
-  accuracyCardContent: { flex: 1, padding: 14, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  accuracyCardInner: { flex: 1, gap: 6 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  goalNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   statsGrid: { flexDirection: 'row', gap: 12 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   section: { gap: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   subjectRow: { gap: 10, paddingRight: 4 },
   topicList: { gap: 8 },
-  topicRow: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, minHeight: 62 },
+  topicRow: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   topicIconWrap: {
     width: 36, height: 36, borderRadius: 10,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center',
@@ -584,8 +394,4 @@ const styles = StyleSheet.create({
   topicContent: { flex: 1, gap: 6 },
   topicHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   topicName: { flex: 1 },
-  topicPill: {
-    paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999,
-    minWidth: 44, alignItems: 'center',
-  },
 });

@@ -1,12 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
+import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { FloatingParticles } from '@/components/ui/FloatingParticles';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
@@ -42,28 +42,24 @@ const INTRO_SLIDES = [
     icon: 'edit-3' as const,
     title: 'Practice smarter',
     subtitle: 'Thousands of real BUET-style MCQs across every subject, with instant feedback and step-by-step solutions.',
-    gradient: ['#6366F1', '#7C3AED', '#A855F7'] as const,
   },
   {
     key: 'mock',
     icon: 'clipboard' as const,
     title: 'Face the real exam',
     subtitle: 'Full-length timed mock tests that mirror the actual paper — including a smart question palette and review.',
-    gradient: ['#0EA5E9', '#6366F1', '#7C3AED'] as const,
   },
   {
     key: 'insights',
     icon: 'trending-up' as const,
     title: 'Know your weak spots',
     subtitle: 'A live performance dashboard tracks accuracy per subject and topic, so you always know what to fix next.',
-    gradient: ['#F59E0B', '#F97316', '#E11D48'] as const,
   },
   {
     key: 'ai',
     icon: 'message-circle' as const,
     title: 'Your AI study coach',
     subtitle: 'Get hints, explanations and a personalised study plan from your built-in AI tutor — whenever you are stuck.',
-    gradient: ['#10B981', '#0D9488', '#06B6D4'] as const,
   },
 ];
 
@@ -78,6 +74,7 @@ function validateTestDate(value: string): string | null {
 
 export default function OnboardingScreen() {
   const { colors } = useTheme();
+  const { isWeb, isDesktop } = useResponsive();
   const onboard = useOnboardingStore();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -286,11 +283,10 @@ export default function OnboardingScreen() {
           }}
           renderItem={({ item, index }) => (
             <View style={[styles.slide, { width }]}>
-              <FloatingParticles count={10} />
-              <GlassCard gradient={item.gradient} glow style={styles.slideIcon}>
-                <Feather name={item.icon} size={46} color="#FFF" />
-              </GlassCard>
-              <AppText variant="h1" style={styles.slideTitle}>{item.title}</AppText>
+              <View style={[styles.slideIcon, { backgroundColor: colors.primaryLight }]}>
+                <Feather name={item.icon} size={40} color={colors.primary} />
+              </View>
+              <AppText variant="h1" style={[styles.slideTitle, { color: colors.text }]}>{item.title}</AppText>
               <AppText variant="body" color="secondary" style={styles.slideSubtitle}>{item.subtitle}</AppText>
               <View style={styles.slideDots}>
                 {INTRO_SLIDES.map((s, i) => (
@@ -320,7 +316,8 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScreenScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={[styles.setupCol, isWeb && isDesktop && styles.setupColWide]}>
       <View style={styles.progressTrack}>
         {setupSteps.map((s, i) => (
           <View
@@ -331,7 +328,7 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={styles.header}>
-        <AppText variant="h1">{current.title}</AppText>
+        <AppText variant="h1" style={{ color: colors.text }}>{current.title}</AppText>
         <AppText variant="body" color="secondary">{current.subtitle}</AppText>
       </View>
 
@@ -347,26 +344,29 @@ export default function OnboardingScreen() {
       <AppText variant="small" color="muted" style={styles.disclaimer}>
         This is an independent educational preparation platform and is not affiliated with or endorsed by Bahria University.
       </AppText>
-    </ScrollView>
+      </View>
+    </ScreenScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flexGrow: 1, padding: 24, gap: 28 },
+  setupCol: { flex: 1, gap: 28 },
+  setupColWide: { maxWidth: 520, alignSelf: 'center', width: '100%' },
   progressTrack: { flexDirection: 'row', gap: 8, marginTop: 8 },
   progressDot: { flex: 1, height: 4, borderRadius: 2 },
   header: { gap: 8, marginTop: 16 },
   content: { flex: 1, justifyContent: 'center' },
-  heroImage: { width: '100%', height: 170, borderRadius: 18, overflow: 'hidden' },
+  heroImage: { width: '100%', height: 170, borderRadius: 12, overflow: 'hidden' },
   optionsWrap: { gap: 12 },
-  option: { padding: 16, borderRadius: 14, borderWidth: 1.5, gap: 4 },
+  option: { padding: 16, borderRadius: 12, borderWidth: 1, gap: 4 },
   errorWrap: { gap: 12, alignItems: 'center' },
   footer: { gap: 8, marginTop: 'auto' },
   disclaimer: { textAlign: 'center' },
   slide: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 32 },
   slideIcon: {
-    width: 112, height: 112, borderRadius: 32,
+    width: 96, height: 96, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
   },

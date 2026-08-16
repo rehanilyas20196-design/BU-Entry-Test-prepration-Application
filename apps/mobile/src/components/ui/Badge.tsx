@@ -32,9 +32,9 @@ export function Badge({ label, tone = 'neutral' }: BadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
     alignSelf: 'flex-start',
   },
-  text: { fontSize: 12, fontWeight: '700' },
+  text: { fontSize: 12, fontWeight: '500' },
 });

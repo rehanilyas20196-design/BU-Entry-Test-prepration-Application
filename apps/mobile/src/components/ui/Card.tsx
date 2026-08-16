@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { shadow, radius } from '@/theme/theme';
+import { radius } from '@/theme/theme';
 
 export interface CardProps extends ViewProps {
   elevated?: boolean;
@@ -9,7 +9,7 @@ export interface CardProps extends ViewProps {
   children: React.ReactNode;
 }
 
-export function Card({ elevated = true, padded = true, children, style, ...props }: CardProps) {
+export function Card({ elevated = false, padded = true, children, style, ...props }: CardProps) {
   const { colors } = useTheme();
   return (
     <View
@@ -17,9 +17,8 @@ export function Card({ elevated = true, padded = true, children, style, ...props
         styles.base,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.border,
+          borderColor: elevated ? colors.border : colors.border,
           padding: padded ? 16 : 0,
-          ...(elevated ? shadow.card : {}),
         },
         style,
       ]}
@@ -32,7 +31,7 @@ export function Card({ elevated = true, padded = true, children, style, ...props
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     overflow: 'hidden',
   },

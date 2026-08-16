@@ -11,7 +11,7 @@ interface ProgressBarProps {
   style?: object;
 }
 
-export function ProgressBar({ progress, height = 8, color, trackColor, style }: ProgressBarProps) {
+export function ProgressBar({ progress, height = 6, color, trackColor, style }: ProgressBarProps) {
   const { colors } = useTheme();
   const clamped = Math.max(0, Math.min(1, progress));
   const fillColor = color ?? colors.primary;

@@ -68,5 +68,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  text: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  text: { fontSize: 14, fontWeight: '500', fontVariant: ['tabular-nums'] },
 });
