@@ -20,7 +20,7 @@ export const ScreenScrollView = React.forwardRef<ScrollView, ScreenScrollViewPro
     return (
       <ScrollView
         ref={ref}
-        style={[{ backgroundColor: colors.background }, style]}
+        style={[{ backgroundColor: colors.background, flex: 1 }, style]}
         contentContainerStyle={[
           styles.content,
           contentContainerStyle,

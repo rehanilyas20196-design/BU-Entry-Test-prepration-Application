@@ -70,8 +70,6 @@ export default function RootLayout() {
     if (session) {
       if (!onboarded) {
         router.replace('/onboarding');
-      } else {
-        router.replace('/(tabs)');
       }
     } else {
       router.replace('/sign-in');
