@@ -23,6 +23,8 @@ import { ACHIEVEMENTS, AchievementData } from '@/content/achievements';
 interface Profile {
   full_name: string | null;
   program: { name: string } | { name: string }[] | null;
+  campus: string | null;
+  target_university: string | null;
   test_date: string | null;
   preparation_level: string | null;
   daily_study_minutes: number | null;
@@ -153,14 +155,28 @@ export default function ProfileScreen() {
           </View>
           <AppText variant="h2">{profile?.full_name ?? 'Student'}</AppText>
           <AppText variant="body" color="secondary">{programName ?? 'Program not set'}</AppText>
+          <View style={styles.infoGrid}>
+            {profile?.campus && (
+              <InfoTile icon="map-pin" label="Campus" value={profile.campus} />
+            )}
+            {profile?.target_university && (
+              <InfoTile icon="book-open" label="University" value={profile.target_university} />
+            )}
+            {profile?.preparation_level && (
+              <InfoTile icon="activity" label="Level" value={profile.preparation_level.charAt(0).toUpperCase() + profile.preparation_level.slice(1)} />
+            )}
+            {profile?.daily_study_minutes != null && (
+              <InfoTile icon="clock" label="Daily study" value={`${profile.daily_study_minutes} min`} />
+            )}
+            {profile?.test_date && (
+              <InfoTile icon="calendar" label="Test date" value={new Date(`${profile.test_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} />
+            )}
+          </View>
           <View style={styles.badges}>
             <Badge label={`Level ${stats?.level ?? 1} · ${stats?.xp ?? 0} XP`} tone="primary" />
             <Pressable onPress={() => router.push('/achievements')} accessibilityRole="button">
               <Badge label={`${earnedBadges} badges earned`} tone="success" />
             </Pressable>
-            {profile?.test_date && (
-              <Badge label={profile.test_date} tone="neutral" />
-            )}
           </View>
         </Card>
       )}
@@ -291,6 +307,25 @@ function SettingRow({
   );
 }
 
+function InfoTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.infoTile, { backgroundColor: colors.surfaceAlt }]}>
+      <Feather name={icon} size={14} color={colors.textSecondary} />
+      <AppText variant="small" color="muted">{label}</AppText>
+      <AppText variant="bodyMedium" numberOfLines={1}>{value}</AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 110, gap: 18 },
   loading: { gap: 14 },
@@ -301,6 +336,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   badges: { flexDirection: 'row', gap: 8, marginTop: 6, flexWrap: 'wrap', justifyContent: 'center' },
+  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, width: '100%', justifyContent: 'center' },
+  infoTile: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+  },
   statsRow: { flexDirection: 'row', gap: 10 },
   section: { gap: 10 },
   menuCard: { padding: 4 },
