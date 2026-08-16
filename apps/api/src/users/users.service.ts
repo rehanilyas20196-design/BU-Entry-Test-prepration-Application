@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { UpdateProfileDto } from '../common/dto';
 
@@ -44,7 +44,21 @@ export class UsersService {
       .eq('user_id', userId)
       .maybeSingle();
     if (error) throw error;
-    if (!data) throw new NotFoundException('No stats yet');
+    if (!data) {
+      return {
+        user_id: userId,
+        xp: 0,
+        level: 1,
+        current_streak: 0,
+        longest_streak: 0,
+        total_questions_answered: 0,
+        total_questions_correct: 0,
+        total_mock_tests: 0,
+        total_study_minutes: 0,
+        best_accuracy: 0,
+        best_mock_score: 0,
+      };
+    }
     return data;
   }
 

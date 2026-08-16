@@ -152,7 +152,7 @@ export default function OnboardingScreen() {
   };
 
   const goToIntroSlide = (i: number) => {
-    listRef.current?.scrollToIndex({ index: i, animated: true });
+    listRef.current?.scrollToOffset({ offset: i * width, animated: true });
     setSlideIndex(i);
   };
 
@@ -290,11 +290,8 @@ export default function OnboardingScreen() {
               <AppText variant="body" color="secondary" style={styles.slideSubtitle}>{item.subtitle}</AppText>
               <View style={styles.slideDots}>
                 {INTRO_SLIDES.map((s, i) => (
-                  <Pressable
+                  <View
                     key={s.key}
-                    onPress={() => goToIntroSlide(i)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Intro slide ${i + 1}`}
                     style={[
                       styles.dot,
                       { backgroundColor: i === index ? colors.primary : colors.surfaceAlt },
@@ -305,7 +302,7 @@ export default function OnboardingScreen() {
               </View>
             </View>
           )}
-          onScrollToIndexFailed={() => undefined}
+          getItemLayout={(_data, index) => ({ length: width, offset: width * index, index })}
         />
         <View style={styles.introFooter}>
           <Button title={slideIndex === INTRO_SLIDES.length - 1 ? 'Start Preparing' : 'Continue'} size="lg" onPress={() => (slideIndex === INTRO_SLIDES.length - 1 ? setPhase('setup') : goToIntroSlide(slideIndex + 1))} />
