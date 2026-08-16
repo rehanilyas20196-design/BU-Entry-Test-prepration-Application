@@ -5,16 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { buildCorsOptions } from './common/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
   app.use(helmet());
-  app.enableCors({
-    origin: (config.get<string>('ALLOWED_ORIGINS') ?? '').split(',').filter(Boolean),
-    credentials: true,
-  });
+  app.enableCors(buildCorsOptions(config.get<string>('ALLOWED_ORIGINS')));
 
   app.useGlobalPipes(
     new ValidationPipe({

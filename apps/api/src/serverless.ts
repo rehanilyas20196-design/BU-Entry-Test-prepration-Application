@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { buildCorsOptions } from './common/cors';
 
 let cachedApp: Awaited<ReturnType<typeof createApp>> | null = null;
 
@@ -14,10 +15,7 @@ async function createApp() {
   const config = app.get(ConfigService);
 
   app.use(helmet());
-  app.enableCors({
-    origin: (config.get<string>('ALLOWED_ORIGINS') ?? '').split(',').filter(Boolean),
-    credentials: true,
-  });
+  app.enableCors(buildCorsOptions(config.get<string>('ALLOWED_ORIGINS')));
 
   app.useGlobalPipes(
     new ValidationPipe({
