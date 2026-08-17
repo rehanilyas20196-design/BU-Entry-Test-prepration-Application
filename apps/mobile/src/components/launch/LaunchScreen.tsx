@@ -16,7 +16,6 @@ import { AnimatedBookLoader } from '@/components/ui/AnimatedBookLoader';
 import { FloatingParticles } from '@/components/ui/FloatingParticles';
 import { AppText } from '@/components/ui/AppText';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { palette } from '@/theme/colors';
 
 const LAUNCH_KEY = 'buetprep.launchSeen';
 
@@ -82,14 +81,24 @@ export function LaunchScreen({ onDone, minimumMs }: LaunchScreenProps) {
     <Animated.View style={[StyleSheet.absoluteFill, fade]}>
       <StatusBar style="light" />
       <LinearGradient
-        colors={[palette.backgroundDark, '#0B1026', '#141237']}
+        colors={['#0F172A', '#1E1B4B', '#312E81']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      <View style={styles.glow} pointerEvents="none" />
       <FloatingParticles count={22} color="#A78BFA" />
       <SafeAreaView style={styles.safe}>
-        <View style={styles.top} />
+        <View style={styles.header}>
+          <View style={styles.headerMark}>
+            <View style={styles.headerDot} />
+            <AppText variant="caption" style={styles.headerText}>
+              Entry Test Preparation
+            </AppText>
+          </View>
+        </View>
+
         <View style={styles.center}>
-          <AppText variant="h2" style={styles.brand}>BUET Prep AI</AppText>
           <Animated.View style={[styles.logoWrap, logoStyle]}>
             <Image
               source={require('../../../assets/launch-logo.png')}
@@ -97,12 +106,31 @@ export function LaunchScreen({ onDone, minimumMs }: LaunchScreenProps) {
               resizeMode="cover"
             />
           </Animated.View>
-          <AnimatedBookLoader height={150} onComplete={() => undefined} />
-          <AppText variant="small" style={styles.hint}>
-            Your journey begins with the first book
+
+          <AppText variant="display" style={styles.brand}>
+            BUET Prep AI
           </AppText>
+          <AppText variant="body" style={styles.tagline}>
+            Smart preparation for your BUET admission
+          </AppText>
+
+          <View style={styles.divider} />
+
+          <View style={styles.bookStage}>
+            <AnimatedBookLoader
+              height={120}
+              showLabel={false}
+              shelfColor="rgba(255,255,255,0.10)"
+              groundColor="#60A5FA"
+              onComplete={() => undefined}
+            />
+          </View>
         </View>
+
         <View style={styles.bottom}>
+          <View style={styles.progressTrack}>
+            <View style={styles.progressFill} />
+          </View>
           {canSkip ? (
             <Pressable
               onPress={() => {
@@ -129,28 +157,97 @@ export function LaunchScreen({ onDone, minimumMs }: LaunchScreenProps) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  top: { height: 48 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 },
+  header: {
+    paddingTop: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  headerMark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#60A5FA',
+  },
+  headerText: { color: '#93A4D8', letterSpacing: 1.5 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  glow: {
+    position: 'absolute',
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    top: '16%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(96,165,250,0.14)',
+  },
+  logoWrap: {
+    width: 104,
+    height: 104,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  logo: { width: 104, height: 104, borderRadius: 26 },
   brand: {
     color: '#FFFFFF',
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textShadowColor: 'rgba(0,0,0,0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
-  logoWrap: {
-    width: 116, height: 116, borderRadius: 30,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+  tagline: { color: '#A5B4FC', marginTop: 8, textAlign: 'center' },
+  divider: {
+    width: 56,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#60A5FA',
+    marginTop: 22,
+    marginBottom: 4,
+  },
+  bookStage: {
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'visible',
+  },
+  bottom: {
+    paddingBottom: 36,
+    alignItems: 'center',
+    gap: 14,
+  },
+  progressTrack: {
+    width: 120,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
-  logo: { width: 116, height: 116, borderRadius: 28 },
-  bottom: { paddingBottom: 32, alignItems: 'center' },
-  skip: { paddingVertical: 10, paddingHorizontal: 28, minHeight: 40, justifyContent: 'center' },
-  skipText: { color: '#8B93B8' },
-  hint: { opacity: 0.9 },
+  progressFill: {
+    width: '40%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#60A5FA',
+  },
+  skip: { paddingVertical: 8, paddingHorizontal: 28, minHeight: 32, justifyContent: 'center' },
+  skipText: { color: '#A5B4FC' },
 });

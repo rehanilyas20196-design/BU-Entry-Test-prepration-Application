@@ -12,7 +12,7 @@ import { usePremiumStore } from '@/stores/premiumStore';
 import { useOnboardingStore, hydrateOnboardingStore } from '@/stores/onboardingStore';
 import { hydrateBookmarkTagsStore } from '@/stores/bookmarkTagsStore';
 import { ToastProvider } from '@/components/ui/Toast';
-import { LaunchScreen, isFirstLaunch, markLaunchSeen } from '@/components/launch/LaunchScreen';
+import { SplashScreen, isFirstLaunch, markLaunchSeen } from '@/components/launch/SplashScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,9 +107,9 @@ export default function RootLayout() {
               <Stack.Screen name="admin" />
             </Stack>
             {showLaunch && (
-              <LaunchScreen
+              <SplashScreen
                 minimumMs={launchMs}
-                onDone={() => {
+                onComplete={() => {
                   setShowLaunch(false);
                   void markLaunchSeen();
                 }}

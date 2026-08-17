@@ -93,7 +93,7 @@ function FallingBook({
   }, [spec, reduced, progress, settle, stackIndex, onDone]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    const fallY = interpolate(progress.value, [0, 1], [-340 - spec.height, 0]);
+    const fallY = interpolate(progress.value, [0, 1], [-(groundY + 60), 0]);
     const rotation = interpolate(progress.value, [0, 1], [spec.tilt * 5, 0]);
     const bounceY = (1 - settle.value) * 18;
     return {
@@ -136,6 +136,8 @@ interface AnimatedBookLoaderProps {
   subtitle?: string;
   onComplete?: () => void;
   showLabel?: boolean;
+  shelfColor?: string;
+  groundColor?: string;
 }
 
 export function AnimatedBookLoader({
@@ -144,6 +146,8 @@ export function AnimatedBookLoader({
   subtitle = 'Preparing your study stack',
   onComplete,
   showLabel = true,
+  shelfColor,
+  groundColor,
 }: AnimatedBookLoaderProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -171,7 +175,7 @@ export function AnimatedBookLoader({
       <View
         style={[
           styles.shelf,
-          { width: Math.min(width * 0.82, totalStackWidth + 40), backgroundColor: colors.surfaceAlt },
+          { width: Math.min(width * 0.82, totalStackWidth + 40), backgroundColor: shelfColor ?? colors.surfaceAlt },
         ]}
       />
       <View
@@ -179,7 +183,7 @@ export function AnimatedBookLoader({
           styles.ground,
           {
             width: Math.min(width * 0.82, totalStackWidth + 40),
-            backgroundColor: colors.primary,
+            backgroundColor: groundColor ?? colors.primary,
           },
         ]}
       />
