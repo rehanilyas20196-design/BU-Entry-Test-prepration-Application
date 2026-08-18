@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Card } from '@/components/ui/Card';
 import { AppText } from '@/components/ui/AppText';
@@ -11,14 +11,15 @@ interface StatCardProps {
   icon?: React.ReactNode;
   accent?: string;
   sub?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function StatCard({ label, value, icon, accent, sub }: StatCardProps) {
+export function StatCard({ label, value, icon, accent, sub, style }: StatCardProps) {
   const { colors } = useTheme();
   const accentColor = accent ?? colors.primary;
 
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, style]}>
       <View style={styles.row}>
         {icon && (
           <View style={[styles.iconWrap, { backgroundColor: accentColor + '14' }]}>{icon}</View>

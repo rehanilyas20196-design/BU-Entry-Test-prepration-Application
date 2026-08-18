@@ -119,7 +119,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const session = useAuthStore((s) => s.session);
-  const { isWeb, isDesktop } = useResponsive();
+  const { isWeb, isDesktop, isCompact } = useResponsive();
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -274,61 +274,65 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        <View style={styles.summaryRow}>
-          <Card style={styles.goalCard}>
-            <View style={styles.cardTitleRow}>
-              <AppText variant="label">Today's goal</AppText>
-              {goalReached && <Badge label="Goal reached" tone="success" />}
-            </View>
-            <View style={styles.goalNumbers}>
-              <AppText variant="display" style={{ color: goalReached ? colors.success : colors.text }}>
-                {todayDone}
+        <View style={styles.statsSection}>
+          <View style={styles.statsGrid}>
+            <Card style={[styles.statCell, isCompact ? styles.statCellCompact : styles.statCellWide, styles.goalCard]}>
+              <View style={styles.cardTitleRow}>
+                <AppText variant="label">Today's goal</AppText>
+                {goalReached && !isCompact && <Badge label="Goal reached" tone="success" />}
+              </View>
+              <View style={styles.goalNumbers}>
+                <AppText variant="display" style={[styles.statValue, { color: goalReached ? colors.success : colors.text }]}>
+                  {todayDone}
+                </AppText>
+                <AppText variant="caption" color="secondary" numberOfLines={1} style={styles.goalUnits}>
+                  / {TODAY_TARGET} questions
+                </AppText>
+              </View>
+              <ProgressBar progress={targetProgress} height={6} color={goalReached ? colors.success : colors.primary} />
+              <AppText variant="small" color="muted" numberOfLines={2}>
+                {goalReached ? 'Amazing work — keep the streak alive!' : `${TODAY_TARGET - todayDone} more to reach your goal`}
               </AppText>
-              <AppText variant="caption" color="secondary">/ {TODAY_TARGET} questions</AppText>
-            </View>
-            <ProgressBar progress={targetProgress} height={8} color={goalReached ? colors.success : colors.primary} />
-            <AppText variant="small" color="muted">
-              {goalReached ? 'Amazing work — keep the streak alive!' : `${TODAY_TARGET - todayDone} more to reach your goal`}
-            </AppText>
-          </Card>
-
-          <Pressable
-            onPress={() => router.push('/performance')}
-            accessibilityRole="button"
-            accessibilityLabel="View performance"
-            style={({ pressed }) => [styles.accuracyCard, pressed && { opacity: 0.9 }]}
-          >
-            <Card style={styles.accuracyCardInner}>
-              <AppText variant="label">Accuracy</AppText>
-              <AppText variant="display" style={{ color: colors.primary, fontVariant: ['tabular-nums'] }}>
-                {accuracy}%
-              </AppText>
-              <ProgressBar progress={Math.min(1, accuracy / 100)} height={6} color={colors.primary} />
-              <AppText variant="small" color="muted">Performance</AppText>
             </Card>
-          </Pressable>
-        </View>
 
-        <Button
-          title="Continue studying"
-          icon={<Feather name="play" size={16} color="#FFFFFF" />}
-          size="lg"
-          onPress={() => router.push('/practice')}
-        />
+            <Pressable
+              onPress={() => router.push('/performance')}
+              accessibilityRole="button"
+              accessibilityLabel="View performance"
+              style={({ pressed }) => [styles.statCell, isCompact ? styles.statCellCompact : styles.statCellWide, pressed && { opacity: 0.9 }]}
+            >
+              <Card style={styles.accuracyCardInner}>
+                <AppText variant="label">Accuracy</AppText>
+                <AppText variant="display" style={[styles.statValue, { color: colors.primary }]}>
+                  {accuracy}%
+                </AppText>
+                <ProgressBar progress={Math.min(1, accuracy / 100)} height={6} color={colors.primary} />
+                <AppText variant="small" color="muted">Performance</AppText>
+              </Card>
+            </Pressable>
 
-        <View style={styles.statsGrid}>
-          <StatCard
-            label="Questions solved"
-            value={data?.stats?.total_questions_answered ?? 0}
-            icon={<Feather name="edit-3" size={16} color={colors.primary} />}
-            sub={`${xp.toLocaleString()} XP earned`}
-          />
-          <StatCard
-            label="Current streak"
-            value={`${streak}d`}
-            icon={<Feather name="zap" size={16} color={colors.warning} />}
-            accent={colors.warning}
-            sub="Days in a row"
+            <StatCard
+              style={[styles.statCell, isCompact ? styles.statCellCompact : styles.statCellWide]}
+              label="Questions solved"
+              value={data?.stats?.total_questions_answered ?? 0}
+              icon={<Feather name="edit-3" size={16} color={colors.primary} />}
+              sub={`${xp.toLocaleString()} XP earned`}
+            />
+            <StatCard
+              style={[styles.statCell, isCompact ? styles.statCellCompact : styles.statCellWide]}
+              label="Current streak"
+              value={`${streak}d`}
+              icon={<Feather name="zap" size={16} color={colors.warning} />}
+              accent={colors.warning}
+              sub="Days in a row"
+            />
+          </View>
+
+          <Button
+            title="Continue studying"
+            icon={<Feather name="play" size={16} color="#FFFFFF" />}
+            size="lg"
+            onPress={() => router.push('/practice')}
           />
         </View>
 
@@ -465,13 +469,17 @@ const styles = StyleSheet.create({
   countdownHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   countdownBody: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   countdownMeta: { flex: 1 },
-  summaryRow: { flexDirection: 'row', gap: 12 },
-  goalCard: { flex: 1.6, gap: 8 },
-  accuracyCard: { flex: 1 },
+  statsSection: { gap: 12 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  statCell: { flexGrow: 1 },
+  statCellCompact: { flexBasis: '47%' },
+  statCellWide: { flexBasis: '23%' },
+  goalCard: { gap: 8 },
   accuracyCardInner: { flex: 1, gap: 6 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   goalNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  statsGrid: { flexDirection: 'row', gap: 12 },
+  goalUnits: { flexShrink: 1 },
+  statValue: { fontSize: 24, lineHeight: 30, fontVariant: ['tabular-nums'] },
   xpCard: { gap: 8, padding: 16 },
   xpHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   xpTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
