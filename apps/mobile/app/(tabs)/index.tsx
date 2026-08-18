@@ -20,7 +20,6 @@ import { Feather } from '@expo/vector-icons';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
 import type { QuickActionAccent, QuickActionTone, QuickActionIcon } from '@/components/dashboard/QuickActionCard';
 import { PremiumCard } from '@/components/dashboard/PremiumCard';
-import { DownloadAppBanner } from '@/components/dashboard/DownloadAppBanner';
 
 const ACCENTS: Record<string, QuickActionAccent> = {
   indigo: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
@@ -200,8 +199,6 @@ export default function HomeScreen() {
             <Badge label={`Level ${level}`} tone="primary" />
           </View>
         </View>
-
-        <DownloadAppBanner style={styles.downloadBanner} />
 
         <Pressable
           onPress={() => router.push('/sample-quiz')}
@@ -449,7 +446,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 110, gap: 24 },
-  downloadBanner: { marginTop: 2 },
   sampleQuizCard: {},
   sampleQuizInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   sampleQuizIcon: {

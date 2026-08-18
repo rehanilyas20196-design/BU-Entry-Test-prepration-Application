@@ -12,6 +12,7 @@ import { usePremiumStore } from '@/stores/premiumStore';
 import { useOnboardingStore, hydrateOnboardingStore } from '@/stores/onboardingStore';
 import { hydrateBookmarkTagsStore } from '@/stores/bookmarkTagsStore';
 import { ToastProvider } from '@/components/ui/Toast';
+import { DownloadTopBanner } from '@/components/ui/DownloadTopBanner';
 import { SplashScreen, isFirstLaunch, markLaunchSeen } from '@/components/launch/SplashScreen';
 
 const queryClient = new QueryClient({
@@ -88,32 +89,39 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
             <StatusBar style={systemScheme === 'dark' ? 'light' : 'dark'} />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="auth-callback" />
-              <Stack.Screen name="practice-session" />
-              <Stack.Screen name="mock-test" />
-              <Stack.Screen name="mock-result" />
-              <Stack.Screen name="ai-tutor" />
-              <Stack.Screen name="question/[id]" />
-              <Stack.Screen name="learn-topics" />
-              <Stack.Screen name="lesson" />
-              <Stack.Screen name="achievements" />
-              <Stack.Screen name="leaderboard" />
-              <Stack.Screen name="sample-quiz" />
-              <Stack.Screen name="admission/[id]" />
-              <Stack.Screen name="admin" />
-            </Stack>
+            <View style={styles.app}>
+              <DownloadTopBanner />
+              <View style={styles.content}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="auth-callback" />
+                  <Stack.Screen name="practice-session" />
+                  <Stack.Screen name="mock-test" />
+                  <Stack.Screen name="mock-result" />
+                  <Stack.Screen name="ai-tutor" />
+                  <Stack.Screen name="question/[id]" />
+                  <Stack.Screen name="learn-topics" />
+                  <Stack.Screen name="lesson" />
+                  <Stack.Screen name="achievements" />
+                  <Stack.Screen name="leaderboard" />
+                  <Stack.Screen name="sample-quiz" />
+                  <Stack.Screen name="admission/[id]" />
+                  <Stack.Screen name="admin" />
+                </Stack>
+              </View>
+            </View>
             {showLaunch && (
-              <SplashScreen
-                minimumMs={launchMs}
-                onComplete={() => {
-                  setShowLaunch(false);
-                  void markLaunchSeen();
-                }}
-              />
+              <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+                <SplashScreen
+                  minimumMs={launchMs}
+                  onComplete={() => {
+                    setShowLaunch(false);
+                    void markLaunchSeen();
+                  }}
+                />
+              </View>
             )}
           </ToastProvider>
         </QueryClientProvider>
@@ -123,5 +131,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  app: { flex: 1 },
+  content: { flex: 1 },
   splash: { flex: 1 },
 });
