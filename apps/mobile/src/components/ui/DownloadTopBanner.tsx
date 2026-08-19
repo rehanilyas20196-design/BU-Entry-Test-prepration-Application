@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const APK_URL = process.env.EXPO_PUBLIC_APK_URL ?? '/apk/buet-prep-ai.apk';
+const APK_URL =
+  process.env.EXPO_PUBLIC_APK_URL ??
+  'https://github.com/rehanilyas20196-design/BU-mobile-application-for-downlaod/releases/download/v1.0.0/BU-Entry-Test-App-v1.0.0.apk';
 const APK_FILENAME = 'buet-prep-ai.apk';
 const STYLE_ID = 'buet-promo-banner-styles';
 

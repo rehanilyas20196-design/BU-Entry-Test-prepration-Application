@@ -5,7 +5,9 @@ import { AppText } from '@/components/ui/AppText';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { radiusTokens } from '@/theme/tokens';
 
-const APK_URL = process.env.EXPO_PUBLIC_APK_URL ?? '/apk/buet-prep-ai.apk';
+const APK_URL =
+  process.env.EXPO_PUBLIC_APK_URL ??
+  'https://github.com/rehanilyas20196-design/BU-mobile-application-for-downlaod/releases/download/v1.0.0/BU-Entry-Test-App-v1.0.0.apk';
 
 function resolveApkUrl(): string {
   if (/^https?:\/\//.test(APK_URL)) return APK_URL;
