@@ -19,33 +19,33 @@ export function StatCard({ label, value, icon, accent, sub, style }: StatCardPro
   const accentColor = accent ?? colors.primary;
 
   return (
-    <Card style={[styles.card, style]}>
-      <View style={styles.row}>
-        {icon && (
-          <View style={[styles.iconWrap, { backgroundColor: accentColor + '14' }]}>{icon}</View>
-        )}
-        <View style={styles.content}>
-          <AppText variant="micro" color="muted">
-            {label}
-          </AppText>
-          <AppText variant="bodyMedium" style={[styles.value, { color: colors.text }]}>
+    <Card padded={false} style={[styles.card, style]}>
+      <View style={styles.inner}>
+        <View style={styles.topRow}>
+          {icon && (
+            <View style={[styles.iconWrap, { backgroundColor: accentColor + '14' }]}>{icon}</View>
+          )}
+          <AppText variant="bodyMedium" style={[styles.value, { color: colors.text }]} numberOfLines={1}>
             {value}
           </AppText>
-          {sub && (
-            <AppText variant="small" color="muted" numberOfLines={1}>
-              {sub}
-            </AppText>
-          )}
         </View>
+        <AppText variant="micro" color="muted" numberOfLines={1}>
+          {label}
+        </AppText>
+        {sub && (
+          <AppText variant="small" color="muted" numberOfLines={1}>
+            {sub}
+          </AppText>
+        )}
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, borderRadius: radius.md },
-  row: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
-  iconWrap: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  content: { flex: 1, gap: 1 },
-  value: { fontSize: 18, lineHeight: 24, fontWeight: '500' },
+  card: { flex: 1, minWidth: 0, borderRadius: radius.md },
+  inner: { padding: 12, gap: 3 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
+  iconWrap: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  value: { fontSize: 18, lineHeight: 24, fontWeight: '600', flexShrink: 1 },
 });
