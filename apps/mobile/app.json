@@ -8,6 +8,8 @@
     "scheme": "buetprep",
     "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/launch-logo.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
     "assetBundlePatterns": [
