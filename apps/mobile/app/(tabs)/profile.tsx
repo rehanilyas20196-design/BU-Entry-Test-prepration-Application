@@ -183,21 +183,19 @@ export default function ProfileScreen() {
 
       <View style={styles.statsRow}>
         <StatCard
+          horizontal
           label="Streak"
           value={`${stats?.current_streak ?? 0}d`}
-          icon={<Feather name="zap" size={16} color={colors.warning} />}
-          accent={colors.warning}
         />
         <StatCard
+          horizontal
           label="Questions"
           value={stats?.total_questions_answered ?? 0}
-          icon={<Feather name="edit-3" size={16} color={colors.primary} />}
         />
         <StatCard
+          horizontal
           label="Mock tests"
           value={stats?.total_mock_tests ?? 0}
-          icon={<Feather name="clipboard" size={16} color={colors.success} />}
-          accent={colors.success}
         />
       </View>
 
