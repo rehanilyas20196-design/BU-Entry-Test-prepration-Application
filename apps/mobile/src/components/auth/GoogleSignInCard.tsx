@@ -1,22 +1,11 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import Constants from 'expo-constants';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
-
-// Public (non-secret) config: committed in app.json `extra` so every build —
-// Vercel, EAS, local — gets the real ID regardless of env-var setup. Env var
-// is kept as a secondary source.
-const GOOGLE_CLIENT_ID =
-  Constants.expoConfig?.extra?.googleClientId ??
-  process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ??
-  'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-
-const GOOGLE_CLIENT_ID_READY =
-  GOOGLE_CLIENT_ID.length > 0 && !GOOGLE_CLIENT_ID.startsWith('YOUR_');
+import { supabase } from '@/lib/supabase';
 
 interface GoogleSignInCardProps {
   onSuccess?: () => void;
@@ -52,38 +41,25 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
   const [loading, setLoading] = useState(false);
   const isWeb = Platform.OS === 'web';
 
-  // Google's GSI popup relies on FedCM ("third-party sign-in"), which browsers
-  // disable when a user dismisses the Google dialog or blocks it in site
-  // settings — leaving the button silently dead. A plain OAuth2 redirect uses
-  // no FedCM and no GSI script, so it works in every browser. The browser goes
-  // to Google's consent page and returns to /google-auth with the id_token in
-  // the URL hash; that route posts it to the backend (which verifies it via
-  // Supabase) and starts the session.
-  const startWebGoogleRedirect = () => {
-    if (!GOOGLE_CLIENT_ID_READY) {
-      show('Google sign-in is not configured. Set EXPO_PUBLIC_GOOGLE_CLIENT_ID.', 'error');
-      return;
-    }
-    const callbackUrl = `${window.location.origin}/google-auth`;
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: callbackUrl,
-      response_type: 'id_token',
-      scope: 'openid email profile',
-      prompt: 'select_account',
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  };
-
+  // Web + native both go through Supabase's Google OAuth. It is a plain
+  // browser redirect chain (no GSI popup, no FedCM, no nonce), so it works
+  // even when "third-party sign-in" is blocked. Supabase handles the Google
+  // exchange and sends the session back to /auth-callback.
   const handlePress = async () => {
-    if (isWeb) {
-      setLoading(true);
-      startWebGoogleRedirect();
-      return;
-    }
-    // Native: Supabase OAuth opens the system browser.
+    setLoading(true);
     try {
-      setLoading(true);
+      if (isWeb) {
+        const redirectTo = `${window.location.origin}/auth-callback`;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo },
+        });
+        if (error) throw error;
+        // The SDK navigates away to Supabase's authorize URL; on return the
+        // auth-callback screen finishes the sign-in.
+        return;
+      }
+      // Native: SDK does not auto-redirect, so open the provider URL ourselves.
       await useAuthStore.getState().signInWithGoogle();
       onSuccess?.();
     } catch (e) {
