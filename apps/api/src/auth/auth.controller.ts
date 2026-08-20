@@ -16,6 +16,6 @@ export class AuthController {
   /** Verify a Google ID token and exchange it for an app session. */
   @Post('google')
   async google(@Body() dto: GoogleAuthDto) {
-    return this.auth.signInWithGoogle(dto.credential);
+    return this.auth.signInWithGoogle(dto.credential, dto.nonce);
   }
 }
