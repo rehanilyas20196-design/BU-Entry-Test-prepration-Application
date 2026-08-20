@@ -6,6 +6,13 @@ export class TokenExchangeDto {
   access_token: string;
 }
 
+export class GoogleAuthDto {
+  /** Google ID token (JWT) issued by Google Identity Services. */
+  @IsString()
+  @IsNotEmpty()
+  credential: string;
+}
+
 export class UpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(120) full_name?: string;
   @IsOptional() @IsString() @MaxLength(120) target_university?: string;

@@ -35,6 +35,32 @@ export class AuthService {
     return this.verifyToken(accessToken);
   }
 
+  /**
+   * Verify a Google Identity Services ID token and exchange it for a Supabase
+   * session. The token is NEVER trusted on the client — Supabase verifies the
+   * JWT signature/audience against Google here on the server before we hand a
+   * session back to the app.
+   */
+  async signInWithGoogle(credential: string) {
+    const { data, error } = await this.supabase.admin.auth.signInWithIdToken({
+      provider: 'google',
+      token: credential,
+    });
+    if (error || !data.session || !data.user) {
+      throw new UnauthorizedException(error?.message ?? 'Google sign-in failed');
+    }
+    return {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at,
+      user: {
+        id: data.user.id,
+        email: data.user.email ?? '',
+        fullName: data.user.user_metadata?.full_name,
+      },
+    };
+  }
+
   async getJwtSecret(): Promise<string> {
     return this.config.getOrThrow<string>('JWT_SECRET');
   }

@@ -37,6 +37,10 @@ export const supabase = createClient(url, anonKey, {
     storage: secureStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // On web the OAuth tokens come back in the URL hash, so the SDK must
+    // detect them itself. On native we use the PKCE flow and exchange the
+    // code manually in the auth-callback screen.
+    detectSessionInUrl: Platform.OS === 'web',
+    flowType: Platform.OS === 'web' ? 'implicit' : 'pkce',
   },
 });

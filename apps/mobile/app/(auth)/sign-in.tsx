@@ -10,14 +10,13 @@ import { TextField } from '@/components/ui/TextField';
 import { Card } from '@/components/ui/Card';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useToast } from '@/components/ui/Toast';
+import { GoogleSignInCard } from '@/components/auth/GoogleSignInCard';
 
 export default function SignInScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { isWeb, isDesktop } = useResponsive();
-  const { signInWithEmail, requestEmailOtp, signInWithGoogle, loading } = useAuthStore();
-  const { show } = useToast();
+  const { signInWithEmail, requestEmailOtp, loading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -131,17 +130,7 @@ export default function SignInScreen() {
             </AppText>
           </Pressable>
 
-          <View style={styles.dividerRow}>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <AppText variant="small" color="muted">or</AppText>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          </View>
-
-          <Button
-            title="Continue with Google"
-            variant="outline"
-            onPress={() => signInWithGoogle().catch((e) => show(e instanceof Error ? e.message : 'Google sign-in failed', 'error'))}
-          />
+          <GoogleSignInCard onSuccess={() => router.replace('/(tabs)')} />
 
           <Link href="/(auth)/forgot-password" style={styles.link}>
             <AppText variant="body" color="primary">Forgot your password?</AppText>
@@ -195,8 +184,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     padding: 12, borderRadius: 8, borderWidth: 1,
   },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  divider: { flex: 1, height: 1 },
   link: { alignSelf: 'center' },
   footerRow: { flexDirection: 'row', justifyContent: 'center' },
   disclaimer: { textAlign: 'center' },

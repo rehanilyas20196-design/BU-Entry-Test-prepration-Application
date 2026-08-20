@@ -40,6 +40,7 @@ Thumbs.db
 
 # Supabase local
 supabase/.temp/
+supabase/**/.temp/
 supabase/.branches/
 
 # Exports
