@@ -64,7 +64,7 @@ export default function GoogleAuthCallbackScreen() {
           access_token: string;
           refresh_token: string;
           expires_at?: number | null;
-        }>('/auth/google', { credential });
+        }>('/auth/google', { credential, ...(expectedNonce ? { nonce: expectedNonce } : {}) });
 
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: res.access_token,
