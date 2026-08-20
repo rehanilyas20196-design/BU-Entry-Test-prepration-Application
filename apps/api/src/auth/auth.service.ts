@@ -41,11 +41,10 @@ export class AuthService {
    * JWT signature/audience against Google here on the server before we hand a
    * session back to the app.
    */
-  async signInWithGoogle(credential: string, nonce?: string) {
+  async signInWithGoogle(credential: string) {
     const { data, error } = await this.supabase.admin.auth.signInWithIdToken({
       provider: 'google',
       token: credential,
-      ...(nonce ? { nonce } : {}),
     });
     if (error || !data.session || !data.user) {
       throw new UnauthorizedException(error?.message ?? 'Google sign-in failed');

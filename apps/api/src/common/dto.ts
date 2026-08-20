@@ -11,13 +11,6 @@ export class GoogleAuthDto {
   @IsString()
   @IsNotEmpty()
   credential: string;
-
-  /** OAuth nonce echoed back inside the id_token claim; must match what
-   * Supabase sees in the token, otherwise it errors with "Passed nonce and
-   * nonce in id_token should either both exist or not." */
-  @IsOptional()
-  @IsString()
-  nonce?: string;
 }
 
 export class UpdateProfileDto {
