@@ -13,6 +13,9 @@ const GSI_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 const GOOGLE_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
+const GOOGLE_CLIENT_ID_READY =
+  GOOGLE_CLIENT_ID.length > 0 && !GOOGLE_CLIENT_ID.startsWith('YOUR_');
+
 interface GoogleIdConfiguration {
   client_id: string;
   callback: (response: { credential: string }) => void;
@@ -24,7 +27,7 @@ interface GoogleAccountsWindow extends Window {
       id: {
         initialize: (config: GoogleIdConfiguration) => void;
         prompt: () => void;
-        redirect: (config?: { login_hint?: string }) => void;
+        renderButton: (element: HTMLElement, options: Record<string, unknown>) => void;
       };
     };
   };
@@ -70,7 +73,12 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
   const [loading, setLoading] = useState(false);
   const initializedRef = useRef(false);
   const pendingPressRef = useRef(false);
+  const hiddenButtonRef = useRef<HTMLDivElement | null>(null);
   const isWeb = Platform.OS === 'web';
+
+  // The GSI callback config is set up once, so keep the latest handler in a
+  // ref instead of re-initializing the client on every render.
+  const handleCredentialResponseRef = useRef<(response: { credential: string }) => void>(() => {});
 
   const handleCredentialResponse = useCallback(
     async (response: { credential: string }) => {
@@ -103,51 +111,109 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
   );
 
   useEffect(() => {
+    handleCredentialResponseRef.current = handleCredentialResponse;
+  }, [handleCredentialResponse]);
+
+  /**
+   * One Tap (`google.accounts.id.prompt()`) silently does nothing when the user
+   * has no Google session in the browser, which looks like a dead button. The
+   * reliable way to keep a custom-styled button is to render Google's real
+   * button (hidden off-screen) and forward our click to its overlay element —
+   * that always opens the official sign-in popup and delivers the JWT to the
+   * callback.
+   */
+  const triggerWebSignIn = useCallback(() => {
+    const overlay = hiddenButtonRef.current?.querySelector<HTMLElement>('[id$="-overlay"]');
+    if (overlay) {
+      overlay.click();
+      return true;
+    }
+    return false;
+  }, []);
+
+  useEffect(() => {
     if (!isWeb) return;
     const win = window as GoogleAccountsWindow;
+
     const init = () => {
-      if (initializedRef.current || !win.google?.accounts?.id) return;
-      initializedRef.current = true;
-      win.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleCredentialResponse,
-      });
+      if (!GOOGLE_CLIENT_ID_READY) return;
+      if (!initializedRef.current && win.google?.accounts?.id) {
+        initializedRef.current = true;
+        win.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response) => handleCredentialResponseRef.current(response),
+        });
+      }
+      if (!win.google?.accounts?.id || !initializedRef.current) return;
+
+      const container =
+        hiddenButtonRef.current ??
+        (() => {
+          const el = document.createElement('div');
+          el.id = 'gsi-render-button';
+          el.style.display = 'none';
+          document.body.appendChild(el);
+          hiddenButtonRef.current = el;
+          return el;
+        })();
+
+      if (container.childElementCount === 0) {
+        win.google.accounts.id.renderButton(container, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+        });
+      }
+
       if (pendingPressRef.current) {
         pendingPressRef.current = false;
-        win.google.accounts.id.prompt();
+        triggerWebSignIn();
       }
     };
+
     if (win.google?.accounts?.id) {
       init();
-      return;
+    } else {
+      const existing = document.getElementById('gsi-script') as HTMLScriptElement | null;
+      if (existing) {
+        existing.addEventListener('load', init);
+        init();
+      } else {
+        const script = document.createElement('script');
+        script.id = 'gsi-script';
+        script.src = GSI_SCRIPT_URL;
+        script.async = true;
+        script.defer = true;
+        script.onload = init;
+        document.head.appendChild(script);
+      }
     }
-    const existing = document.getElementById('gsi-script') as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener('load', init);
-      init();
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'gsi-script';
-    script.src = GSI_SCRIPT_URL;
-    script.async = true;
-    script.defer = true;
-    script.onload = init;
-    document.head.appendChild(script);
-  }, [isWeb, handleCredentialResponse]);
+
+    return () => {
+      if (hiddenButtonRef.current) {
+        hiddenButtonRef.current.remove();
+        hiddenButtonRef.current = null;
+      }
+    };
+  }, [isWeb, triggerWebSignIn]);
 
   const handlePress = async () => {
-    const win = window as GoogleAccountsWindow;
     if (isWeb) {
+      if (!GOOGLE_CLIENT_ID_READY) {
+        show('Google sign-in is not configured. Set EXPO_PUBLIC_GOOGLE_CLIENT_ID.', 'error');
+        return;
+      }
+      if (triggerWebSignIn()) return;
+      const win = window as GoogleAccountsWindow;
       if (win.google?.accounts?.id) {
         try {
           win.google.accounts.id.prompt();
         } catch {
-          // One Tap unavailable in this browser — go straight to Google sign-in.
-          win.google.accounts.id.redirect();
+          // One Tap unavailable in this browser.
         }
       } else {
-        // Script still loading — fire once GSI is initialized.
         pendingPressRef.current = true;
       }
       return;
