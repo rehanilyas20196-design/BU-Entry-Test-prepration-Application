@@ -53,7 +53,8 @@
       "router": {},
       "eas": {
         "projectId": "341f1ff4-328e-4751-b2fe-fcd29a810098"
-      }
+      },
+      "googleClientId": "538142720092-2o781nu0r1vpl0gfkh7g5v66q1cb864r.apps.googleusercontent.com"
     }
   }
 }

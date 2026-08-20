@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import Constants from 'expo-constants';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,8 +11,13 @@ import { useToast } from '@/components/ui/Toast';
 
 const GSI_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
+// Public (non-secret) config: committed in app.json `extra` so every build —
+// Vercel, EAS, local — gets the real ID regardless of env-var setup. Env var
+// is kept as a secondary source.
 const GOOGLE_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  Constants.expoConfig?.extra?.googleClientId ??
+  process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ??
+  'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 const GOOGLE_CLIENT_ID_READY =
   GOOGLE_CLIENT_ID.length > 0 && !GOOGLE_CLIENT_ID.startsWith('YOUR_');
@@ -19,6 +25,11 @@ const GOOGLE_CLIENT_ID_READY =
 interface GoogleIdConfiguration {
   client_id: string;
   callback: (response: { credential: string }) => void;
+  /** Skip FedCM and use the classic popup flow. FedCM gets disabled for a
+   * site when a user dismisses the Google dialog or blocks third-party
+   * sign-in, which silently breaks the popup (`FedCM get() rejects with
+   * AbortError`). Forcing this off keeps the button working everywhere. */
+  use_fedcm_for_prompt: boolean;
 }
 
 interface GoogleAccountsWindow extends Window {
@@ -141,6 +152,7 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
         initializedRef.current = true;
         win.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
+          use_fedcm_for_prompt: false,
           callback: (response) => handleCredentialResponseRef.current(response),
         });
       }

@@ -94,8 +94,21 @@ export default function PracticeSessionScreen() {
 
   const handleSpeedTimeout = () => {
     if (index < (questions?.length ?? 1) - 1) {
-      setIndex(index + 1);
+      advance(index + 1);
     }
+  };
+
+  // Advance to the next question and reset the answer state in the same render.
+  // Resetting via useEffect runs after the render, which briefly flashes the
+  // previous answer state (and the correct-answer card) on the new question
+  // before the user has answered it.
+  const advance = (to: number) => {
+    questionStart.current = Date.now();
+    setSelected(null);
+    setAnswered(false);
+    setIsCorrect(false);
+    setHint(null);
+    setIndex(to);
   };
 
   const { data: bookmarkData } = useQuery({
@@ -326,11 +339,11 @@ export default function PracticeSessionScreen() {
         {answered ? (
           <AnimatedButton
             title={index < questions.length - 1 ? 'Next Question' : 'Finish Session'}
-            onPress={() => (index < questions.length - 1 ? setIndex(index + 1) : router.back())}
+            onPress={() => (index < questions.length - 1 ? advance(index + 1) : router.back())}
             size="lg"
           />
         ) : (
-          <Button title="Skip" variant="outline" onPress={() => setIndex(Math.min(index + 1, questions.length - 1))} size="lg" />
+          <Button title="Skip" variant="outline" onPress={() => advance(Math.min(index + 1, questions.length - 1))} size="lg" />
         )}
       </View>
     </View>
