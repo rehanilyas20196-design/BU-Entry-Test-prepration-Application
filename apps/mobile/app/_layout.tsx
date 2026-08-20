@@ -65,6 +65,7 @@ export default function RootLayout() {
       pathname === '/verify-otp' ||
       pathname === '/forgot-password' ||
       pathname === '/auth-callback' ||
+      pathname === '/google-auth' ||
       pathname === '/sample-quiz'
     ) {
       return;
@@ -97,6 +98,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="onboarding" />
                   <Stack.Screen name="auth-callback" />
+                  <Stack.Screen name="google-auth" />
                   <Stack.Screen name="practice-session" />
                   <Stack.Screen name="mock-test" />
                   <Stack.Screen name="mock-result" />
