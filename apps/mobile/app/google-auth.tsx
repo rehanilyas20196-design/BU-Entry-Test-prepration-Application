@@ -7,22 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
-function jwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const part = token.split('.')[1] ?? '';
-    const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
-    const json = decodeURIComponent(
-      Array.prototype.map
-        .call(atob(padded), (c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
-        .join(''),
-    );
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
 // Web only: Google returns here after the OAuth redirect with the id_token in
 // the URL hash (#id_token=...). We hand it to the backend, which verifies it
 // via Supabase, and start the session.
@@ -40,31 +24,15 @@ export default function GoogleAuthCallbackScreen() {
       try {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const credential = params.get('id_token');
-
         if (!credential) {
           throw new Error('No Google credential was received.');
-        }
-
-        // Optional replay protection: the nonce Google echoes back lives inside
-        // the id_token's payload claim, not as a URL parameter.
-        let expectedNonce: string | null = null;
-        try {
-          expectedNonce = sessionStorage.getItem('google_oauth_nonce');
-        } catch {
-          // ignore — private mode
-        }
-        if (expectedNonce) {
-          const payload = jwtPayload(credential);
-          if (!payload || payload.nonce !== expectedNonce) {
-            throw new Error('Sign-in request expired. Please try again.');
-          }
         }
 
         const res = await api.post<{
           access_token: string;
           refresh_token: string;
           expires_at?: number | null;
-        }>('/auth/google', { credential, ...(expectedNonce ? { nonce: expectedNonce } : {}) });
+        }>('/auth/google', { credential });
 
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: res.access_token,

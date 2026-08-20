@@ -65,20 +65,11 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
       return;
     }
     const callbackUrl = `${window.location.origin}/google-auth`;
-    let nonce = '';
-    try {
-      nonce = crypto.randomUUID();
-      sessionStorage.setItem('google_oauth_nonce', nonce);
-    } catch {
-      // sessionStorage may be unavailable (private mode); the backend still
-      // verifies the JWT signature and audience, so the nonce is defense-in-depth.
-    }
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: callbackUrl,
       response_type: 'id_token',
       scope: 'openid email profile',
-      nonce,
       prompt: 'select_account',
     });
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
