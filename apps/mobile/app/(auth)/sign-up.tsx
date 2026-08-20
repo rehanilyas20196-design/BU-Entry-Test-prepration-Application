@@ -10,25 +10,20 @@ import { TextField } from '@/components/ui/TextField';
 import { Card } from '@/components/ui/Card';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useToast } from '@/components/ui/Toast';
+import { GoogleSignInCard } from '@/components/auth/GoogleSignInCard';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { isWeb, isDesktop } = useResponsive();
-  const { signUp, signInWithGoogle, loading } = useAuthStore();
-  const { show } = useToast();
+  const { signUp, loading } = useAuthStore();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; email?: string; password?: string; confirm?: string }>({});
-
-  const handleGoogle = () => {
-    signInWithGoogle().catch((e) => show(e instanceof Error ? e.message : 'Google sign-in failed', 'error'));
-  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -85,17 +80,7 @@ export default function SignUpScreen() {
 
           <Button title="Create account" onPress={handleSubmit} loading={loading} size="lg" />
 
-          <View style={styles.dividerRow}>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <AppText variant="small" color="muted">or</AppText>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          </View>
-
-          <Button
-            title="Continue with Google"
-            variant="outline"
-            onPress={handleGoogle}
-          />
+          <GoogleSignInCard onSuccess={() => router.replace('/(tabs)')} />
 
           <View style={styles.footerRow}>
             <AppText variant="body" color="secondary">Already have an account?{' '}</AppText>
@@ -131,7 +116,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     padding: 12, borderRadius: 8, borderWidth: 1,
   },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  divider: { flex: 1, height: 1 },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
 });

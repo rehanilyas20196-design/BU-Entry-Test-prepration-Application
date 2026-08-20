@@ -24,6 +24,7 @@ interface GoogleAccountsWindow extends Window {
       id: {
         initialize: (config: GoogleIdConfiguration) => void;
         prompt: () => void;
+        redirect: (config?: { login_hint?: string }) => void;
       };
     };
   };
@@ -68,6 +69,7 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
   const { show } = useToast();
   const [loading, setLoading] = useState(false);
   const initializedRef = useRef(false);
+  const pendingPressRef = useRef(false);
   const isWeb = Platform.OS === 'web';
 
   const handleCredentialResponse = useCallback(
@@ -110,6 +112,10 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleCredentialResponse,
       });
+      if (pendingPressRef.current) {
+        pendingPressRef.current = false;
+        win.google.accounts.id.prompt();
+      }
     };
     if (win.google?.accounts?.id) {
       init();
@@ -132,8 +138,18 @@ export function GoogleSignInCard({ onSuccess }: GoogleSignInCardProps) {
 
   const handlePress = async () => {
     const win = window as GoogleAccountsWindow;
-    if (isWeb && win.google?.accounts?.id) {
-      win.google.accounts.id.prompt();
+    if (isWeb) {
+      if (win.google?.accounts?.id) {
+        try {
+          win.google.accounts.id.prompt();
+        } catch {
+          // One Tap unavailable in this browser — go straight to Google sign-in.
+          win.google.accounts.id.redirect();
+        }
+      } else {
+        // Script still loading — fire once GSI is initialized.
+        pendingPressRef.current = true;
+      }
       return;
     }
     // Native fallback: Supabase OAuth opens the system browser.
