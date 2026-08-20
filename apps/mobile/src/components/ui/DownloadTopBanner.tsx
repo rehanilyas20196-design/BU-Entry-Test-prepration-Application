@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const APK_URL =
   process.env.EXPO_PUBLIC_APK_URL ??
-  'https://github.com/rehanilyas20196-design/BU-mobile-application-for-downlaod/releases/download/v1.0.0/BU-Entry-Test-App-v1.0.0.apk';
+  'https://github.com/rehanilyas20196-design/BU-APPLICATION-APK-FILES/releases/download/v1.0.0/BU-ENTRY-TEST.apk';
 const APK_FILENAME = 'buet-prep-ai.apk';
 const STYLE_ID = 'buet-promo-banner-styles';
 

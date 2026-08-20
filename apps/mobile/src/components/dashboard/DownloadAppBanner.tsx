@@ -7,7 +7,7 @@ import { radiusTokens } from '@/theme/tokens';
 
 const APK_URL =
   process.env.EXPO_PUBLIC_APK_URL ??
-  'https://github.com/rehanilyas20196-design/BU-mobile-application-for-downlaod/releases/download/v1.0.0/BU-Entry-Test-App-v1.0.0.apk';
+  'https://github.com/rehanilyas20196-design/BU-APPLICATION-APK-FILES/releases/download/v1.0.0/BU-ENTRY-TEST.apk';
 
 function resolveApkUrl(): string {
   if (/^https?:\/\//.test(APK_URL)) return APK_URL;
