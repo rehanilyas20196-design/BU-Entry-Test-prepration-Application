@@ -6,6 +6,14 @@ import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { supabase } from '@/lib/supabase';
 
+import { useOnboardingStore } from '@/stores/onboardingStore';
+
+function skipOnboardingIfOAuth(session: { user: { app_metadata?: { provider?: string } } }) {
+  if (session.user.app_metadata?.provider && session.user.app_metadata.provider !== 'email') {
+    useOnboardingStore.getState().setField('onboarded', true);
+  }
+}
+
 export default function AuthCallbackScreen() {
   const { colors } = useTheme();
   const router = useRouter();
@@ -25,6 +33,7 @@ export default function AuthCallbackScreen() {
           // link (buetprep://auth/callback?code=...) for a session.
           const { data, error } = await supabase.auth.exchangeCodeForSession(url);
           if (!error && data.session) {
+            skipOnboardingIfOAuth(data.session);
             router.replace('/(tabs)');
             return;
           }
@@ -36,6 +45,7 @@ export default function AuthCallbackScreen() {
             refresh_token: refreshToken ?? '',
           });
           if (!error && data.session) {
+            skipOnboardingIfOAuth(data.session);
             router.replace('/(tabs)');
             return;
           }
@@ -48,6 +58,7 @@ export default function AuthCallbackScreen() {
         router.replace('/sign-in');
         return;
       }
+      skipOnboardingIfOAuth(data.session);
       router.replace('/(tabs)');
     };
     // On native wait for the deep-link URL to arrive (cold start returns it
