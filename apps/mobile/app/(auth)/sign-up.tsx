@@ -10,7 +10,6 @@ import { TextField } from '@/components/ui/TextField';
 import { Card } from '@/components/ui/Card';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
-import { GoogleSignInCard } from '@/components/auth/GoogleSignInCard';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
@@ -79,8 +78,6 @@ export default function SignUpScreen() {
           <TextField label="Confirm password" value={confirm} onChangeText={setConfirm} placeholder="Repeat password" secureTextEntry autoComplete="new-password" error={fieldErrors.confirm} icon={<Feather name="lock" size={16} color={colors.textMuted} />} />
 
           <Button title="Create account" onPress={handleSubmit} loading={loading} size="lg" />
-
-          <GoogleSignInCard onSuccess={() => router.replace('/(tabs)')} />
 
           <View style={styles.footerRow}>
             <AppText variant="body" color="secondary">Already have an account?{' '}</AppText>

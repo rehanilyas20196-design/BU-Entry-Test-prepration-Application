@@ -10,7 +10,6 @@ import { TextField } from '@/components/ui/TextField';
 import { Card } from '@/components/ui/Card';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
-import { GoogleSignInCard } from '@/components/auth/GoogleSignInCard';
 
 export default function SignInScreen() {
   const { colors } = useTheme();
@@ -129,8 +128,6 @@ export default function SignInScreen() {
               {mode === 'otp' ? 'Sign in with password instead' : 'Sign in with a one-time code'}
             </AppText>
           </Pressable>
-
-          <GoogleSignInCard onSuccess={() => router.replace('/(tabs)')} />
 
           <Link href="/(auth)/forgot-password" style={styles.link}>
             <AppText variant="body" color="primary">Forgot your password?</AppText>

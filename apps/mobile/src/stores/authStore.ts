@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { setAccessToken } from '@/lib/api';
 
@@ -18,7 +18,6 @@ interface AuthState {
   requestEmailOtp: (email: string) => Promise<void>;
   verifyEmailOtp: (email: string, token: string, type?: EmailOtpType) => Promise<void>;
   resendEmailOtp: (email: string, type?: EmailOtpType) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -133,35 +132,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (error) {
       set({ loading: false, error: error.message });
       throw error;
-    }
-    set({ loading: false });
-  },
-
-  signInWithGoogle: async () => {
-    set({ loading: true, error: null });
-    const isWeb = Platform.OS === 'web';
-    const base = isWeb
-      ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081')
-      : null;
-    const redirectTo = isWeb
-      ? `${base}/auth-callback`
-      : 'buetprep://auth/callback';
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-    if (error) {
-      set({ loading: false, error: error.message });
-      throw error;
-    }
-    if (!isWeb && data?.url) {
-      // On native the SDK does not auto-redirect, so open the provider URL
-      // ourselves. The callback (buetprep://auth/callback) is handled by the
-      // auth-callback screen, which exchanges the PKCE code for a session.
-      await Linking.openURL(data.url).catch((e) => {
-        set({ loading: false });
-        throw new Error(`Unable to open the browser: ${e instanceof Error ? e.message : 'unknown error'}`);
-      });
     }
     set({ loading: false });
   },
