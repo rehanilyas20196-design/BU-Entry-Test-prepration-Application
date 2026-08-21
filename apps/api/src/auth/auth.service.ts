@@ -61,14 +61,15 @@ export class AuthService {
       );
       if (res.ok) {
         const body = (await res.json()) as { users?: Array<{ identities?: Array<{ provider: string }> }> };
-        const existing = body.users?.[0];
-        if (existing) {
-          const hasGoogle = existing.identities?.some((id) => id.provider === 'google');
-          if (!hasGoogle) {
-            throw new UnauthorizedException(
-              'An account with this email already exists. Please sign in with your email and password.',
-            );
-          }
+        // Check if ANY user with this email is email-only (no Google identity).
+        // If so, block to prevent duplicate accounts.
+        const hasEmailOnlyUser = body.users?.some(
+          (u) => !u.identities?.some((id) => id.provider === 'google'),
+        );
+        if (hasEmailOnlyUser) {
+          throw new UnauthorizedException(
+            'An account with this email already exists. Please sign in with your email and password.',
+          );
         }
       }
     }
