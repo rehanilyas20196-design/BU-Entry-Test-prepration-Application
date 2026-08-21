@@ -135,7 +135,6 @@ export default function OnboardingScreen() {
 
   const handleFinish = async () => {
     setSaving(true);
-    onboard.setField('onboarded', true);
     try {
       const token = useAuthStore.getState().session?.access_token;
       if (token) {
@@ -148,10 +147,12 @@ export default function OnboardingScreen() {
           daily_study_minutes: onboard.dailyStudyMinutes,
           onboarded: true,
         });
+        await onboard.setField('onboarded', true);
         await queryClient.invalidateQueries({ queryKey: ['profile'] });
       }
     } catch (err: any) {
       toast.show(err?.message ?? 'Could not save your profile. You can retry from the profile page.', 'error');
+      return;
     }
     router.replace('/(tabs)');
   };

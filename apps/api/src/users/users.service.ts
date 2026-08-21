@@ -42,8 +42,7 @@ export class UsersService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const { data, error } = await this.supabase.admin
       .from('profiles')
-      .update(dto)
-      .eq('user_id', userId)
+      .upsert({ user_id: userId, ...dto }, { onConflict: 'user_id' })
       .select()
       .single();
     if (error) throw error;
