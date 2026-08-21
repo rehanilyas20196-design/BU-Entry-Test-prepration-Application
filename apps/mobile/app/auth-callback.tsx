@@ -8,9 +8,15 @@ import { supabase } from '@/lib/supabase';
 
 import { useOnboardingStore } from '@/stores/onboardingStore';
 
-function skipOnboardingIfOAuth(session: { user: { app_metadata?: { provider?: string } } }) {
+function skipOnboardingIfOAuth(session: { user: { app_metadata?: { provider?: string }; created_at?: string } }) {
   if (session.user.app_metadata?.provider && session.user.app_metadata.provider !== 'email') {
-    useOnboardingStore.getState().setField('onboarded', true);
+    const createdAt = session.user.created_at;
+    if (createdAt) {
+      const ageMs = Date.now() - new Date(createdAt).getTime();
+      if (ageMs > 60_000) {
+        useOnboardingStore.getState().setField('onboarded', true);
+      }
+    }
   }
 }
 
