@@ -16,7 +16,7 @@ export class GoogleAuthDto {
 export class UpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(120) full_name?: string;
   @IsOptional() @IsString() @MaxLength(120) target_university?: string;
-  @IsOptional() @IsString() @MaxLength(120) campus?: string;
+  @IsOptional() @IsString() campus?: string;
   @IsOptional() @IsString() program_id?: string | null;
   @IsOptional() @IsString() test_date?: string | null;
   @IsOptional() @IsIn(['beginner', 'intermediate', 'advanced']) preparation_level?: string | null;
@@ -33,7 +33,6 @@ export class RecordAnswerDto {
   @IsIn(['A', 'B', 'C', 'D']) selected_option: string;
   is_correct: boolean;
   @IsOptional() @IsNumber() @Min(0) @Max(3600) time_spent_seconds?: number;
-  @IsOptional() @IsString() mode?: string;
 }
 
 export class StartTestDto {
