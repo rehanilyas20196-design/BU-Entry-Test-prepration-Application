@@ -7,9 +7,11 @@ export class UsersService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async getProfile(userId: string) {
+    // First, fetch the profile without any embeds to avoid PostgREST schema
+    // cache issues (PGRST200) that can crash the entire request.
     const { data, error } = await this.supabase.admin
       .from('profiles')
-      .select('*, program:programs(*)')
+      .select('*')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -23,6 +25,17 @@ export class UsersService {
       if (createError) throw createError;
       return created;
     }
+
+    // If the profile has a program_id, fetch the program separately.
+    if (data.program_id) {
+      const { data: program } = await this.supabase.admin
+        .from('programs')
+        .select('*')
+        .eq('id', data.program_id)
+        .maybeSingle();
+      return { ...data, program: program ?? null };
+    }
+
     return data;
   }
 

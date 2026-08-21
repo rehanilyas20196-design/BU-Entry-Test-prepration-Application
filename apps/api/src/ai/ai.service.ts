@@ -182,9 +182,19 @@ Return JSON: {"question":"...","options":["a","b","c","d"],"correct_index":0,"ex
     await this.premium.requirePremium(userId);
     const { data: profile } = await this.supabase.admin
       .from('profiles')
-      .select('program:programs(name), preparation_level')
+      .select('program_id, preparation_level')
       .eq('user_id', userId)
       .maybeSingle();
+
+    let programName: string | null = null;
+    if (profile?.program_id) {
+      const { data: program } = await this.supabase.admin
+        .from('programs')
+        .select('name')
+        .eq('id', profile.program_id)
+        .maybeSingle();
+      programName = program?.name ?? null;
+    }
 
     const { data: weakTopics } = await this.supabase.admin
       .from('topic_progress')
@@ -195,10 +205,6 @@ Return JSON: {"question":"...","options":["a","b","c","d"],"correct_index":0,"ex
       .limit(5);
 
     const daysUntil = Math.max(1, Math.ceil((new Date(dto.test_date).getTime() - Date.now()) / 86400000));
-
-    const programName = Array.isArray(profile?.program)
-      ? (profile.program as any[])[0]?.name ?? 'not set'
-      : (profile?.program as any)?.name ?? 'not set';
 
     const prompt = `Create a personalized study plan for the Bahria University Entry Test (BUET).
 Days until test: ${daysUntil}
