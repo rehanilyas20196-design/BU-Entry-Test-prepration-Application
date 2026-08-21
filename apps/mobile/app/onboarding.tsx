@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
 import { ScreenScrollView } from '@/components/ui/ScreenScrollView';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
+import { useToast } from '@/components/ui/Toast';
 
 interface ProgramOption {
   id: string;
@@ -79,6 +80,7 @@ export default function OnboardingScreen() {
   const onboard = useOnboardingStore();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const toast = useToast();
 
   const [phase, setPhase] = useState<'intro' | 'setup'>('intro');
   const [slideIndex, setSlideIndex] = useState(0);
@@ -146,8 +148,8 @@ export default function OnboardingScreen() {
           onboarded: true,
         });
       }
-    } catch {
-      // non-blocking — profile sync can retry later
+    } catch (err: any) {
+      toast.show(err?.message ?? 'Could not save your profile. You can retry from the profile page.', 'error');
     }
     router.replace('/(tabs)');
   };

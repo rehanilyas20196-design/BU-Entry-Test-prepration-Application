@@ -14,6 +14,8 @@ function resolveBaseUrl(): string {
         const host = globalThis.location?.hostname;
         if (host && host !== 'localhost' && host !== '127.0.0.1') {
           parsed.hostname = host;
+          // Remove dev-only port so the browser uses the default port (80/443).
+          parsed.port = '';
           url = parsed.toString().replace(/\/$/, '');
         }
       }

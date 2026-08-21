@@ -15,7 +15,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bu-entry-test-prepration-applicatio.vercel.app/api/v1",
-        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "538142720092-2o781nu0r1vpl0gfkh7g5v66q1cb864r.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "538142720092-2o781nu0r1vpl0gfkh7g5v66q1cb864r.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://qkbfrjvgpnjhtbvtkzkg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrYmZyanZncG5qaHRidnRremtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MzQwNjAsImV4cCI6MjEwMjAxMDA2MH0.5JhRiFOMC1s2qdhlWyTH96HYu_NwuqS3RPobUW18OsY"
       }
     },
     "production": {
@@ -25,7 +27,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bu-entry-test-prepration-applicatio.vercel.app/api/v1",
-        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "538142720092-2o781nu0r1vpl0gfkh7g5v66q1cb864r.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "538142720092-2o781nu0r1vpl0gfkh7g5v66q1cb864r.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://qkbfrjvgpnjhtbvtkzkg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrYmZyanZncG5qaHRidnRremtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MzQwNjAsImV4cCI6MjEwMjAxMDA2MH0.5JhRiFOMC1s2qdhlWyTH96HYu_NwuqS3RPobUW18OsY"
       }
     }
   },
