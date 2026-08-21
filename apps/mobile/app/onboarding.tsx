@@ -11,7 +11,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useToast } from '@/components/ui/Toast';
 
@@ -81,6 +81,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const [phase, setPhase] = useState<'intro' | 'setup'>('intro');
   const [slideIndex, setSlideIndex] = useState(0);
@@ -147,6 +148,7 @@ export default function OnboardingScreen() {
           daily_study_minutes: onboard.dailyStudyMinutes,
           onboarded: true,
         });
+        await queryClient.invalidateQueries({ queryKey: ['profile'] });
       }
     } catch (err: any) {
       toast.show(err?.message ?? 'Could not save your profile. You can retry from the profile page.', 'error');

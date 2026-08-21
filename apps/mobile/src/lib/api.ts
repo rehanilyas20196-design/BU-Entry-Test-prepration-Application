@@ -4,8 +4,10 @@ import { Platform } from 'react-native';
 // On a physical device (Expo Go), "localhost" points to the phone itself.
 // Derive the dev machine's LAN IP from the Expo host URI so API calls reach
 // the machine running `expo start`. Falls back to EXPO_PUBLIC_API_URL.
+const PRODUCTION_API_URL = 'https://bu-entry-test-prepration-applicatio.vercel.app/api/v1';
+
 function resolveBaseUrl(): string {
-  let url = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+  let url = process.env.EXPO_PUBLIC_API_URL ?? PRODUCTION_API_URL;
 
   if (Platform.OS === 'web') {
     try {
@@ -14,7 +16,6 @@ function resolveBaseUrl(): string {
         const host = globalThis.location?.hostname;
         if (host && host !== 'localhost' && host !== '127.0.0.1') {
           parsed.hostname = host;
-          // Remove dev-only port so the browser uses the default port (80/443).
           parsed.port = '';
           url = parsed.toString().replace(/\/$/, '');
         }
