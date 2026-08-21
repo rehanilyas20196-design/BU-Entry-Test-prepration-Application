@@ -42,6 +42,37 @@ export class AuthService {
    * session back to the app.
    */
   async signInWithGoogle(credential: string) {
+    // Decode the Google id_token to get the email before attempting sign-in.
+    // If an email/password user already exists with this email, block the
+    // Google sign-in to prevent duplicate accounts.
+    const payload = this.jwt.decode<{ email?: string }>(credential);
+    const email = payload?.email;
+    if (email) {
+      const supabaseUrl = this.config.getOrThrow<string>('SUPABASE_URL');
+      const serviceRoleKey = this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
+      const res = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            apikey: serviceRoleKey,
+          },
+        },
+      );
+      if (res.ok) {
+        const body = (await res.json()) as { users?: Array<{ identities?: Array<{ provider: string }> }> };
+        const existing = body.users?.[0];
+        if (existing) {
+          const hasGoogle = existing.identities?.some((id) => id.provider === 'google');
+          if (!hasGoogle) {
+            throw new UnauthorizedException(
+              'An account with this email already exists. Please sign in with your email and password.',
+            );
+          }
+        }
+      }
+    }
+
     const { data, error } = await this.supabase.admin.auth.signInWithIdToken({
       provider: 'google',
       token: credential,
