@@ -14,7 +14,7 @@ import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-option
  */
 export function buildCorsOptions(allowedOriginsEnv: string | undefined): CorsOptions {
   const explicit = (allowedOriginsEnv ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  const PROJECT_PREFIX = 'bu-entry-test-prepration';
+  const PROJECT_PREFIX = 'bu-entry-test-prepration-applicatio';
 
   return {
     origin: (origin, callback) => {
