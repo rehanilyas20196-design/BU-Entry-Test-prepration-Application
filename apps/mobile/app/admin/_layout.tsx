@@ -71,6 +71,7 @@ export default function AdminLayout() {
       <Stack.Screen name="coupons" />
       <Stack.Screen name="analytics" />
       <Stack.Screen name="activity" />
+      <Stack.Screen name="leaderboard-admin" />
     </Stack>
   );
 }

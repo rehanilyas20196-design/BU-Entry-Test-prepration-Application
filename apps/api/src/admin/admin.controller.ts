@@ -7,6 +7,19 @@ import { QuestionGenService } from './question-gen.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GenerateQuestionsDto } from '../common/dto';
 
+enum LeaderboardMetric {
+  XP = 'xp',
+  Questions = 'questions',
+}
+
+class GetWeeklyQueryDto {
+  @IsEnum(LeaderboardMetric)
+  metric: LeaderboardMetric;
+
+  @IsBoolean()
+  opted_in_only: boolean;
+}
+
 @Controller('admin')
 @UseGuards(SupabaseAuthGuard, AdminGuard)
 export class AdminController {
@@ -160,5 +173,83 @@ export class AdminController {
       .limit(200);
     if (error) throw error;
     return data;
+  }
+
+  // ---- Leaderboard stats ----
+
+  @Get('leaderboard/stats')
+  async leaderboardStats() {
+    const [{ data: events }, { data: stats }, { data: profiles }] = await Promise.all([
+      this.supabase.admin
+        .from('xp_events')
+        .select('user_id')
+        .gte('created_at', this.startOfWeek(new Date()).toISOString()),
+      this.supabase.admin.from('user_stats').select('user_id, leaderboard_opt_in'),
+      this.supabase.admin.from('profiles').select('user_id, full_name'),
+    ]);
+
+    const optedIn = new Set(
+      (stats ?? [])
+        .filter((s) => s.leaderboard_opt_in)
+        .map((s) => s.user_id),
+    );
+    const nameByUser = new Map(
+      (profiles ?? []).map((p) => [p.user_id, p.full_name]),
+    );
+
+    const correctByUser = new Map<string, number>();
+    const incorrectByUser = new Map<string, number>();
+
+    for (const e of events ?? []) {
+      if (!optedIn.has(e.user_id)) continue;
+      if (!correctByUser.has(e.user_id)) correctByUser.set(e.user_id, 0);
+      if (!incorrectByUser.has(e.user_id)) incorrectByUser.set(e.user_id, 0);
+      if ((e.amount ?? 0) > 0) {
+        correctByUser.set(e.user_id, (correctByUser.get(e.user_id) ?? 0) + 1);
+      } else {
+        incorrectByUser.set(e.user_id, (incorrectByUser.get(e.user_id) ?? 0) + 1);
+      }
+    }
+
+    const results = Array.from(correctByUser.entries())
+      .map(([uid, correct]) => ({
+        user_id: uid,
+        full_name: nameByUser.get(uid) ?? 'Student',
+        correct,
+        incorrect: incorrectByUser.get(uid) ?? 0,
+        total: (correctByUser.get(uid) ?? 0) + (incorrectByUser.get(uid) ?? 0),
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 100);
+
+    return results;
+  }
+
+  @Get('leaderboard/opt-in-status')
+  async leaderboardOptInStatus() {
+    const [{ data: stats }, { data: profiles }] = await Promise.all([
+      this.supabase.admin.from('user_stats').select('user_id, leaderboard_opt_in'),
+      this.supabase.admin.from('profiles').select('user_id, full_name'),
+    ]);
+
+    const optedInMap = new Map(
+      (stats ?? []).map((s) => [s.user_id, s.leaderboard_opt_in]),
+    );
+    const results = (profiles ?? []).map((p) => ({
+      user_id: p.user_id,
+      full_name: p.full_name ?? 'Unknown',
+      opted_in: optedInMap.get(p.user_id) ?? false,
+    }));
+
+    return results;
+  }
+
+  private startOfWeek(now: Date): Date {
+    const d = new Date(now);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Switch, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
@@ -16,13 +16,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useToast } from '@/components/ui/Toast';
 import { Feather } from '@expo/vector-icons';
+import { LeaderboardRow } from '@/types/leaderboard';
 
 interface LeaderboardResponse {
   period: string;
   week_start: string;
   week_end: string;
-  entries: { rank: number; user_id: string; full_name: string; xp: number; is_current_user: boolean }[];
-  current_user: { rank: number; xp: number } | null;
+  entries: { rank: number; user_id: string; full_name: string; xp: number; correct_count: number; incorrect_count: number; is_current_user: boolean }[];
+  current_user: { rank: number; xp: number; correct: number; incorrect: number } | null;
+  metric: 'xp' | 'questions';
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -33,6 +35,8 @@ export default function LeaderboardScreen() {
   const session = useAuthStore((s) => s.session);
   const { leaderboardOptIn, setLeaderboardOptIn } = useSettingsStore();
   const { show } = useToast();
+  const [metric, setMetric] = React.useState<'xp' | 'questions'>('xp');
+  const [showPosition, setShowPosition] = React.useState<boolean>(true);
 
   const { data: optInStatus } = useQuery({
     queryKey: ['leaderboard-opt-in'],
@@ -43,8 +47,8 @@ export default function LeaderboardScreen() {
   const effectivelyOptedIn = optInStatus?.opted_in ?? leaderboardOptIn;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['leaderboard-weekly'],
-    queryFn: () => api.get<LeaderboardResponse>('/leaderboard/weekly'),
+    queryKey: ['leaderboard-weekly', metric, effectivelyOptedIn],
+    queryFn: () => api.get<LeaderboardResponse>(`/leaderboard/weekly?metric=${metric}&optedInOnly=${effectivelyOptedIn}`),
     enabled: !!session && effectivelyOptedIn,
   });
 
@@ -58,6 +62,15 @@ export default function LeaderboardScreen() {
       setLeaderboardOptIn(!value);
       show('Could not update. Please try again.', 'error');
     }
+  };
+
+  const handleMetricChange = (newMetric: 'xp' | 'questions') => {
+    setMetric(newMetric);
+    refetch();
+  };
+
+  const handlePositionToggle = (value: boolean) => {
+    setShowPosition(value);
   };
 
   return (
@@ -81,7 +94,7 @@ export default function LeaderboardScreen() {
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant="bodyMedium">Show me on the leaderboard</AppText>
               <AppText variant="small" color="muted">
-                Only your name and weekly XP are visible to other students.
+                Only your name and weekly XP/questions are visible to other students.
               </AppText>
             </View>
             <AnimatedSwitch
@@ -117,21 +130,34 @@ export default function LeaderboardScreen() {
               <GlassCard gradient={[colors.heroGradientStart, colors.heroGradientMid, colors.heroGradientEnd]} glow style={styles.myRank}>
                 <AppText variant="label" style={styles.whiteText}>Your rank this week</AppText>
                 <View style={styles.myRankRow}>
-                  <AppText variant="display" style={styles.whiteText}>#{data.current_user.rank}</AppText>
+                  <AppText variant="display" style={styles.whiteText}>
+                    {showPosition ? `#${data.current_user.rank}` : '—'}
+                  </AppText>
                   <View style={styles.myRankXp}>
                     <Feather name="star" size={14} color="#FFF" />
-                    <AppText variant="bodyMedium" style={styles.whiteText}>{data.current_user.xp} XP</AppText>
+                    <AppText variant="bodyMedium" style={styles.whiteText}>
+                      {data.current_user.xp} XP
+                    </AppText>
                   </View>
                 </View>
                 <AppText variant="small" style={styles.white80}>
                   Week of {data.week_start} – {data.week_end}
                 </AppText>
+                {showPosition && (
+                  <AppText variant="small" style={styles.white80}>
+                    Position shown: {'✓' }
+                  </AppText>
+                )}
               </GlassCard>
             )}
 
             <View style={styles.list}>
               {data?.entries.map((e) => (
-                <Card key={e.user_id} padded={false} style={[styles.row, e.is_current_user && { borderColor: colors.primary }]}>
+                <Card
+                  key={e.user_id}
+                  padded={false}
+                  style={[styles.row, e.is_current_user && { borderColor: colors.primary }]}
+                >
                   <View style={styles.rowInner}>
                     <View style={styles.rankWrap}>
                       <AppText variant="bodyMedium" style={[styles.rank, e.rank <= 3 && { fontSize: 18 }]}>
@@ -146,7 +172,14 @@ export default function LeaderboardScreen() {
                     </View>
                     <View style={styles.xpWrap}>
                       <Feather name="star" size={14} color={colors.warning} />
-                      <AppText variant="bodyMedium">{e.xp.toLocaleString()} XP</AppText>
+                      <AppText variant="bodyMedium">
+                        {e.xp.toLocaleString()} XP
+                      </AppText>
+                    </View>
+                    <View style={styles.statsWrap}>
+                      <AppText variant="micro" color="muted">
+                        {e.correct_count} correct · {e.incorrect_count} wrong
+                      </AppText>
                     </View>
                   </View>
                 </Card>
@@ -182,5 +215,29 @@ const styles = StyleSheet.create({
   rankWrap: { width: 40, alignItems: 'center' },
   rank: { fontSize: 15, fontVariant: ['tabular-nums'] },
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statsWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   note: { textAlign: 'center', marginTop: 4 },
+
+  /* Metric toggle styles */
+  metricToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  metricButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  metricButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  metricButtonText: {
+    color: 'white',
+    fontSize: 12,
+  },
+  metricButtonTextActive: {
+    color: 'white',
+  },
 });
