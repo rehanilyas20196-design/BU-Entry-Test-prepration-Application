@@ -98,10 +98,29 @@ export class QuestionsService {
     if (qErr) throw qErr;
 
     const shuffled = questions?.map((q) => {
-      const options = q.options?.sort(() => Math.random() - 0.5);
-      return { ...q, options };
+      const { options, correct_option } = this.shuffleOptions(q.options ?? []);
+      return { ...q, options, correct_option };
     }) ?? [];
     return this.shuffle(shuffled);
+  }
+
+  private shuffleOptions<T extends { option_key: string; option_text: string; is_correct: boolean }>(
+    options: T[],
+  ): { options: T[]; correct_option: string } {
+    const keys = ['A', 'B', 'C', 'D'];
+    const shuffled = this.shuffle(options ?? []);
+    let correctOption = 'A';
+    const remapped = shuffled.map((opt, i) => {
+      const key = keys[i] ?? opt.option_key;
+      if (opt.is_correct) {
+        correctOption = key;
+      }
+      return {
+        ...opt,
+        option_key: key,
+      };
+    });
+    return { options: remapped as T[], correct_option: correctOption };
   }
 
   private async answeredIds(userId: string): Promise<string[]> {

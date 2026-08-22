@@ -97,81 +97,17 @@ export default function AchievementsScreen() {
   const getTarget = (a: Achievement) => a.target;
   const isUnlocked = (a: Achievement) => getCurrent(a) >= getTarget(a);
 
-  // Build hero badges: 4-6 badges showing mix of unlocked/locked/featured
-  const heroBadges: HeroBadge[] = [];
-  const featuredPositions = [0, 2];
-  let featuredCount = 0;
-
-  // Sort achievements by progress percentage to highlight almost-unlocked ones
-  const sortedAchievements = [...allAchievements].sort(
-    (a, b) =>
-      (getTarget(b) - getCurrent(b)) / Math.max(getTarget(b), 1) -
-      (getTarget(a) - getCurrent(a)) / Math.max(getTarget(a), 1),
-  );
-
-  // Take first 6 achievements for the hero carousel
-  const heroCandidates = sortedAchievements.slice(0, 6);
-
-  heroCandidates.forEach((a, index) => {
-    const current = getCurrent(a);
-    const target = getTarget(a);
-    const progress = target > 0 ? Math.min(1, current / target) : 0;
-    const isUnlocked = progress >= 1 && unlockedSet.has(a.id);
-    const almostUnlocked = progress >= 0.8 && progress < 1 && !unlockedSet.has(a.id);
-    const isFeatured = featuredPositions.includes(index) && featuredCount < 2;
-    const isAlmost = almostUnlocked && !isFeatured;
-
-    heroBadges.push({
-      id: a.id,
-      emoji: a.emoji,
-      title: a.title,
-      description: a.description,
-      target,
-      current,
-      unlocked: isUnlocked,
-      isFeatured: isFeatured || featuredCount < 2 ? true : false,
-      isAlmostUnlocked: isAlmost,
-    });
-
-    if (isFeatured) featuredCount++;
-  });
-
-  // If we have fewer than 6, pad with already-unlocked ones
-  while (heroBadges.length < 6) {
-    const unlockedAchievement = allAchievements.find(
-      (a) => unlockedSet.has(a.id) && !heroBadges.some((b) => b.id === a.id),
-    );
-    if (!unlockedAchievement) break;
-    heroBadges.push({
-      id: unlockedAchievement.id,
-      emoji: unlockedAchievement.emoji,
-      title: unlockedAchievement.title,
-      description: unlockedAchievement.description,
-      target: unlockedAchievement.target,
-      current: unlockedAchievement.current(data),
-      unlocked: true,
-      isFeatured: false,
-      isAlmostUnlocked: false,
-    });
-  }
-
-  // If still less than 4, fill with first achievements
-  while (heroBadges.length < 4) {
-    const firstAchievement = allAchievements[heroBadges.length];
-    heroBadges.push({
-      id: firstAchievement.id,
-      emoji: firstAchievement.emoji,
-      title: firstAchievement.title,
-      description: firstAchievement.description,
-      target: firstAchievement.target,
-      current: firstAchievement.current(data),
-      unlocked: isUnlocked(firstAchievement),
-      isFeatured: false,
-      isAlmostUnlocked: false,
-    });
-  }
-
   const unlockedCount = allAchievements.filter((a) => isUnlocked(a)).length;
+  const totalCount = allAchievements.length;
+
+  // 5 Badge Cluster icons arranged in an arc (foreground/background depth)
+  const heroCluster = [
+    { emoji: '👑', label: 'Crown', scale: 0.9, translateY: 4, isGlowing: false, isLocked: !unlockedSet.has('first_mock') },
+    { emoji: '🔥', label: 'Streak', scale: 1.1, translateY: -6, isGlowing: true, isLocked: !unlockedSet.has('streak_7') },
+    { emoji: '🏆', label: 'Trophy', scale: 1.35, translateY: -14, isGlowing: true, isLocked: !unlockedSet.has('questions_500') },
+    { emoji: '⭐', label: 'Star', scale: 1.1, translateY: -6, isGlowing: false, isLocked: !unlockedSet.has('rising_star') },
+    { emoji: '🎖️', label: 'Medal', scale: 0.9, translateY: 4, isGlowing: false, isLocked: !unlockedSet.has('accuracy_80') },
+  ];
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -186,113 +122,130 @@ export default function AchievementsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-
-        {/* HERO BANNER - sits at top above individual rows */}
-        <View style={styles.heroBanner}>
-          <View style={styles.heroContainer}>
-            {/* Headline and subtext */}
-            <View style={styles.heroText}>
-              <AppText variant="display" style={styles.heroHeadline}>
-                {unlockedCount} Achievements Waiting
-              </AppText>
-              <AppText variant="micro" style={styles.heroSubtext}>
-                Complete tests, build streaks, and earn XP to unlock badges.
-              </AppText>
-            </View>
-
-            {/* Progress indicator */}
-            <View style={styles.progressWrapper}>
-              <AppText variant="micro" style={styles.progressLabel}>
-                {unlockedCount} / {allAchievements.length} unlocked
-              </AppText>
-              <AnimatedProgressBar
-                progress={allAchievements.length > 0 ? unlockedCount / allAchievements.length : 0}
-                height={4}
-                color={colors.primary}
-                trackColor={colors.surfaceAlt}
-                delay={0}
-                style={styles.progressBar}
-              />
-            </View>
-
-            {/* Badge icons in horizontal scatter/arc */}
-            <View style={styles.badgeContainer}>
-              {heroBadges.map((badge) => (
-                <Pressable
-                  key={badge.id}
-                  style={[
-                    styles.badge,
-                    {
-                      transform: [
-                        { scale: badge.isFeatured ? 1.3 : 1 },
-                        { translateY: badge.isAlmostUnlocked || badge.isFeatured ? -4 : 0 },
-                      ],
-                      opacity: badge.unlocked ? 1 : 0.5,
-                    },
-                  ]}
-                >
-                  <View style={styles.emojiWrap}>
-                    <AppText style={styles.emoji}>
-                      {badge.unlocked
-                        ? badge.emoji
-                        : badge.isAlmostUnlocked
-                          ? badge.emoji
-                          : '🔒'}
-                    </AppText>
+        {/* GAMIFIED HERO BANNER CARD */}
+        <View style={[styles.heroCard, { backgroundColor: colors.primaryLight + '50', borderColor: colors.primary + '30' }]}>
+          {/* Badge Arc / Scatter Cluster */}
+          <View style={styles.clusterContainer}>
+            {heroCluster.map((item, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.badgeBubble,
+                  {
+                    transform: [{ scale: item.scale }, { translateY: item.translateY }],
+                    backgroundColor: item.isGlowing ? colors.surface : (item.isLocked ? colors.surfaceAlt : colors.primaryLight),
+                    borderColor: item.isGlowing ? colors.primary : (item.isLocked ? colors.border : colors.primaryLight),
+                    shadowColor: item.isGlowing ? colors.primary : '#000',
+                    shadowOpacity: item.isGlowing ? 0.25 : 0.08,
+                    shadowRadius: item.isGlowing ? 10 : 4,
+                    elevation: item.isGlowing ? 6 : 2,
+                    opacity: item.isLocked && !item.isGlowing ? 0.55 : 1,
+                  },
+                ]}
+              >
+                <AppText style={[styles.badgeEmoji, { fontSize: item.scale > 1.2 ? 30 : 22 }]}>
+                  {item.emoji}
+                </AppText>
+                {item.isLocked && (
+                  <View style={[styles.miniLockBadge, { backgroundColor: colors.textMuted }]}>
+                    <Feather name="lock" size={9} color="#FFF" />
                   </View>
-                  {badge.unlocked && badge.isAlmostUnlocked && (
-                    <AppText variant="micro" style={styles.lockOverlay}>
-                      •
-                    </AppText>
-                  )}
-                  {!badge.unlocked && badge.isAlmostUnlocked && (
-                    <View style={styles.lockBadge}>
-                      <Feather name="lock" size={10} color="muted" />
-                    </View>
-                  )}
-                </Pressable>
-              ))}
+                )}
+              </View>
+            ))}
+          </View>
+
+          {/* Headline & Subtext */}
+          <View style={styles.heroTextSection}>
+            <AppText variant="h2" style={styles.heroHeadline}>
+              {totalCount - unlockedCount > 0 ? `${totalCount - unlockedCount} Achievements Waiting` : 'All Achievements Unlocked!'}
+            </AppText>
+            <AppText variant="body" color="secondary" style={styles.heroSubtext}>
+              Complete tests, build streaks, and earn XP to unlock badges.
+            </AppText>
+          </View>
+
+          {/* Progress Indicator */}
+          <View style={styles.heroProgressSection}>
+            <View style={styles.progressTextRow}>
+              <AppText variant="label" color="primary">
+                {unlockedCount} / {totalCount} unlocked
+              </AppText>
+              <AppText variant="caption" color="secondary">
+                {Math.round((unlockedCount / Math.max(totalCount, 1)) * 100)}%
+              </AppText>
             </View>
+            <AnimatedProgressBar
+              progress={totalCount > 0 ? unlockedCount / totalCount : 0}
+              height={8}
+              color={colors.primary}
+              trackColor={colors.border + '60'}
+              delay={150}
+            />
           </View>
         </View>
 
-        {/* Individual achievements list below */}
+        {/* INDIVIDUAL ACHIEVEMENTS LIST */}
         <View style={styles.list}>
-          {allAchievements.map((a) => (
-            <GlassCard
-              key={a.id}
-              style={[
-                styles.achievement,
-                { opacity: isUnlocked(a) ? 1 : 0.82 },
-              ]}
-            >
-              <View style={styles.emojiWrap}>
-                <AppText style={styles.emoji}>
-                  {isUnlocked(a) ? a.emoji : '🔒'}
-                </AppText>
-              </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <AppText variant="bodyMedium">{a.title}</AppText>
-                <AppText variant="small" color="muted">{a.description}</AppText>
-                <View style={styles.progressRow}>
-                  <AnimatedProgressBar
-                    progress={
-                      a.target > 0 ? Math.min(1, a.current(data) / a.target) : 0
-                    }
-                    height={6}
-                    color={isUnlocked(a) ? colors.success : colors.primary}
-                    trackColor={colors.surfaceAlt}
-                    delay={0}
-                    style={styles.progressBar}
-                  />
-                  <AppText variant="micro" color="muted">
-                    {isUnlocked(a) ? 'Done' : `${Math.min(a.current(data), a.target)} / ${a.target} ${a.unit ?? ''}`}
+          {allAchievements.map((a) => {
+            const unlocked = isUnlocked(a);
+            const currentVal = getCurrent(a);
+            const targetVal = getTarget(a);
+            const progressVal = targetVal > 0 ? Math.min(1, currentVal / targetVal) : 0;
+
+            return (
+              <GlassCard
+                key={a.id}
+                style={[
+                  styles.achievementCard,
+                  { opacity: unlocked ? 1 : 0.85 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.listEmojiWrap,
+                    {
+                      backgroundColor: unlocked ? colors.primaryLight : colors.surfaceAlt,
+                      borderColor: unlocked ? colors.primary + '40' : colors.border,
+                    },
+                  ]}
+                >
+                  <AppText style={styles.listEmoji}>
+                    {unlocked ? a.emoji : '🔒'}
                   </AppText>
                 </View>
-              </View>
-              {isUnlocked(a) && <Feather name="check-circle" size={18} color={colors.success} />}
-            </GlassCard>
-          ))}
+
+                <View style={styles.achievementContent}>
+                  <AppText variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {a.title}
+                  </AppText>
+                  <AppText variant="small" color="muted">
+                    {a.description}
+                  </AppText>
+
+                  <View style={styles.progressRow}>
+                    <AnimatedProgressBar
+                      progress={progressVal}
+                      height={6}
+                      color={unlocked ? colors.success : colors.primary}
+                      trackColor={colors.surfaceAlt}
+                      delay={0}
+                      style={{ flex: 1 }}
+                    />
+                    <AppText variant="micro" color="muted">
+                      {unlocked ? 'Done' : `${Math.min(currentVal, targetVal)} / ${targetVal} ${a.unit ?? ''}`}
+                    </AppText>
+                  </View>
+                </View>
+
+                {unlocked && (
+                  <View style={[styles.checkBadge, { backgroundColor: colors.successLight }]}>
+                    <Feather name="check" size={14} color={colors.success} />
+                  </View>
+                )}
+              </GlassCard>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -302,92 +255,115 @@ export default function AchievementsScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { padding: 4 },
-  body: { padding: 20, gap: 16, paddingBottom: 40 },
-
-  /* ----- Hero Banner Styles ----- */
-  heroBanner: {
-    padding: 24,
-    marginBottom: 20,
-    backgroundColor: 'rgba(168,85,247,0.14)',
-    borderRadius: 20,
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  heroContainer: { padding: 16 },
-  heroText: { gap: 6 },
-  heroHeadline: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  heroSubtext: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  progressWrapper: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  progressLabel: { fontSize: 11, color: '#6b7280' },
-  progressBar: { height: 4, flex: 1, borderRadius: 2 },
-  badgeContainer: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  badge: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(99,102,241,0.12)',
-    opacity: 0.82,
-    padding: 4,
-  },
-  emojiWrap: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 28 },
-  lockOverlay: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 10,
-    color: '#6b7280',
-  },
-  lockBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  /* ----- Existing achievement list styles (kept consistent) ----- */
-  achievement: {
-    padding: 14,
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 14,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  locked: { opacity: 0.82 },
-  emoji: { fontSize: 24 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  progressBar: { flex: 1 },
+  backBtn: { padding: 4 },
+  body: { padding: 18, gap: 20, paddingBottom: 40 },
+
+  /* Hero Card Styles */
+  heroCard: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    padding: 22,
+    gap: 16,
+    overflow: 'hidden',
+  },
+  clusterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    paddingVertical: 12,
+    height: 70,
+  },
+  badgeBubble: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  badgeEmoji: {
+    textAlign: 'center',
+  },
+  miniLockBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  heroTextSection: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroHeadline: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  heroSubtext: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 12,
+  },
+
+  heroProgressSection: {
+    gap: 8,
+    marginTop: 4,
+  },
+  progressTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  /* List Styles */
+  list: { gap: 12 },
+  achievementCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+  },
+  listEmojiWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listEmoji: {
+    fontSize: 22,
+  },
+  achievementContent: {
+    flex: 1,
+    gap: 4,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
