@@ -97,7 +97,11 @@ export class QuestionsService {
       .in('id', ids);
     if (qErr) throw qErr;
 
-    return this.shuffle(questions ?? []);
+    const shuffled = questions?.map((q) => {
+      const options = q.options?.sort(() => Math.random() - 0.5);
+      return { ...q, options };
+    }) ?? [];
+    return this.shuffle(shuffled);
   }
 
   private async answeredIds(userId: string): Promise<string[]> {
