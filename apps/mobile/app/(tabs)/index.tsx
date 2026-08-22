@@ -20,6 +20,7 @@ import { Feather } from '@expo/vector-icons';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
 import type { QuickActionAccent, QuickActionTone, QuickActionIcon } from '@/components/dashboard/QuickActionCard';
 import { PremiumCard } from '@/components/dashboard/PremiumCard';
+import { ApkDownloadCard } from '@/components/dashboard/ApkDownloadCard';
 
 const ACCENTS: Record<string, QuickActionAccent> = {
   indigo: { main: '#2563EB', soft: '#60A5FA', ring: '#DBEAFE' },
@@ -217,6 +218,9 @@ export default function HomeScreen() {
             <Feather name="chevron-right" size={18} color={colors.textMuted} />
           </Card>
         </Pressable>
+
+        {/* Download the Android APK (web visitors only) */}
+        <ApkDownloadCard />
 
         {publicStats?.visible && (
           <Card style={styles.socialProof}>
