@@ -5,12 +5,8 @@ import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-option
  *
  * Accepts origins that are either:
  *  1. explicitly listed in ALLOWED_ORIGINS (exact match), or
- *  2. served from Vercel under the app's own project prefix.
- *
- * The site is deployed on Vercel and Vercel mints fresh *.vercel.app URLs per
- * deployment/project, so an exact-only allowlist goes stale every time the site
- * is redeployed under a new URL. Accepting the project's own Vercel subdomains
- * keeps CORS working across those renames while still blocking unrelated hosts.
+ *  2. served from Vercel subdomains (*.vercel.app), or
+ *  3. local development (localhost / 127.0.0.1).
  */
 export function buildCorsOptions(allowedOriginsEnv: string | undefined): CorsOptions {
   const explicit = (allowedOriginsEnv ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -18,7 +14,7 @@ export function buildCorsOptions(allowedOriginsEnv: string | undefined): CorsOpt
 
   return {
     origin: (origin, callback) => {
-      // Non-browser requests (curl, servers, same-origin) carry no Origin header.
+      // Non-browser requests (curl, mobile native apps, same-origin) carry no Origin header.
       if (!origin) {
         callback(null, true);
         return;
@@ -32,7 +28,10 @@ export function buildCorsOptions(allowedOriginsEnv: string | undefined): CorsOpt
         if (
           hostname === `${PROJECT_PREFIX}.vercel.app` ||
           hostname.endsWith(`-${PROJECT_PREFIX}.vercel.app`) ||
-          (hostname.startsWith(PROJECT_PREFIX) && hostname.endsWith('.vercel.app'))
+          (hostname.startsWith(PROJECT_PREFIX) && hostname.endsWith('.vercel.app')) ||
+          hostname.endsWith('.vercel.app') ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1'
         ) {
           callback(null, true);
           return;
@@ -40,8 +39,10 @@ export function buildCorsOptions(allowedOriginsEnv: string | undefined): CorsOpt
       } catch {
         // fall through to deny
       }
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'X-Api-Version'],
   };
 }

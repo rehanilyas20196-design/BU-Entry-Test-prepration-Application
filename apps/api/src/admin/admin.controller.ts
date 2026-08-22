@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { IsBoolean, IsEnum } from 'class-validator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
@@ -182,7 +183,7 @@ export class AdminController {
     const [{ data: events }, { data: stats }, { data: profiles }] = await Promise.all([
       this.supabase.admin
         .from('xp_events')
-        .select('user_id')
+        .select('user_id, amount')
         .gte('created_at', this.startOfWeek(new Date()).toISOString()),
       this.supabase.admin.from('user_stats').select('user_id, leaderboard_opt_in'),
       this.supabase.admin.from('profiles').select('user_id, full_name'),
