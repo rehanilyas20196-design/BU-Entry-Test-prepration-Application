@@ -97,11 +97,13 @@ export class QuestionsService {
       .in('id', ids);
     if (qErr) throw qErr;
 
-    const shuffled = questions?.map((q) => {
+    // Shuffle each question's options (Fisher-Yates) and remap keys to A–D so
+    // correct answers land at random positions instead of always following DB order.
+    const withShuffledOptions = (questions ?? []).map((q) => {
       const { options, correct_option } = this.shuffleOptions(q.options ?? []);
       return { ...q, options, correct_option };
-    }) ?? [];
-    return this.shuffle(shuffled);
+    });
+    return this.shuffle(withShuffledOptions);
   }
 
   private shuffleOptions<T extends { option_key: string; option_text: string; is_correct: boolean }>(
@@ -153,6 +155,9 @@ export class QuestionsService {
       .neq('id', excludeId)
       .limit(10);
     if (error) throw error;
-    return data;
+    return (data ?? []).map((q) => {
+      const { options, correct_option } = this.shuffleOptions((q as any).options ?? []);
+      return { ...q, options, correct_option };
+    });
   }
 }

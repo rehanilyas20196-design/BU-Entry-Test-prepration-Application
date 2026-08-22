@@ -7,42 +7,57 @@ import {
   Switch,
   Text,
   ActivityIndicator,
-  TextInput,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/admin/adminApi';
 import { useAdminAuthStore } from '@/admin/adminAuth';
 import { Feather } from '@expo/vector-icons';
 
+interface AdminStatsRow {
+  user_id: string;
+  full_name: string | null;
+  correct: number;
+  incorrect: number;
+  total: number;
+}
+
+interface OptInRow {
+  user_id: string;
+  full_name: string | null;
+  opted_in: boolean;
+}
+
 export default function AdminLeaderboardScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { session, login, logout, touchActivity } = useAdminAuthStore();
+  const session = useAdminAuthStore((s) => s.session);
 
-  const { data: stats, isLoading, error } = useQuery({
+  const [metric, setMetric] = React.useState<'xp' | 'questions'>('xp');
+  const [showPosition, setShowPosition] = React.useState<boolean>(true);
+
+  const {
+    data: stats,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['admin-leaderboard-stats'],
-    queryFn: () => adminApi.get<{
-      user_id: string;
-      full_name: string | null;
-      correct: number;
-      incorrect: number;
-      total: number;
-    }[]>('/admin-dash/leaderboard/stats'),
+    queryFn: () => adminApi.get<AdminStatsRow[]>('/admin-dash/leaderboard/stats'),
     enabled: !!session,
   });
 
-  const { data: optInStatus, isLoading: optInLoading } = useQuery({
+  const {
+    data: optInStatus,
+    isLoading: optInLoading,
+  } = useQuery({
     queryKey: ['admin-leaderboard-opt-in'],
-    queryFn: () =>
-      adminApi.get<{ user_id: string; opted_in: boolean }[]>(
-        '/admin-dash/leaderboard/opt-in-status',
-      ),
+    queryFn: () => adminApi.get<OptInRow[]>('/admin-dash/leaderboard/opt-in-status'),
     enabled: !!session,
   });
 
@@ -55,20 +70,23 @@ export default function AdminLeaderboardScreen() {
   }
 
   if (error) {
-    return <Alert title="Error" message={error.message} />;
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ErrorState
+          title="Couldn't load leaderboard data"
+          message="Please check your connection and try again."
+          onRetry={() => refetch()}
+        />
+      </View>
+    );
   }
 
-  const metric = React.useState<'xp' | 'questions'>('xp')[0];
-  const [showPosition, setShowPosition] = React.useState<boolean>(true);
-
-  const sortedByXP = stats?.sort(
-    (a, b) => b.total - a.total || b.correct - a.correct,
-  ) ?? [];
-  const sortedByQuestions = stats?.sort(
-    (a, b) => b.incorrect - a.incorrect || b.correct - a.correct,
-  ) ?? [];
-
-  const displayed = metric === 'questions' ? sortedByQuestions : sortedByXP;
+  // "XP" ranks by correct answers (XP proxy); "Questions" ranks by attempts.
+  const sortedByXp = [...(stats ?? [])].sort(
+    (a, b) => b.correct - a.correct || b.total - a.total,
+  );
+  const sortedByQuestions = [...(stats ?? [])].sort((a, b) => b.total - a.total);
+  const displayed = metric === 'questions' ? sortedByQuestions : sortedByXp;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -91,22 +109,22 @@ export default function AdminLeaderboardScreen() {
           </AppText>
           <View style={styles.metricToggle}>
             <Pressable
-              onPress={() => setShowPosition(!showPosition)}
+              onPress={() => setMetric('xp')}
               style={[
                 styles.metricButton,
                 metric === 'xp' && { backgroundColor: colors.primary },
               ]}
             >
-              <Text style={styles.metricButtonText}>XP</Text>
+              <Text style={[styles.metricButtonText, metric === 'xp' && styles.metricButtonTextActive]}>XP</Text>
             </Pressable>
             <Pressable
-              onPress={() => setShowPosition(!showPosition)}
+              onPress={() => setMetric('questions')}
               style={[
                 styles.metricButton,
                 metric === 'questions' && { backgroundColor: colors.primary },
               ]}
             >
-              <Text style={styles.metricButtonText}>Questions</Text>
+              <Text style={[styles.metricButtonText, metric === 'questions' && styles.metricButtonTextActive]}>Questions</Text>
             </Pressable>
           </View>
           <AppText variant="small" style={styles.metricSubtext}>
@@ -120,22 +138,15 @@ export default function AdminLeaderboardScreen() {
             value={showPosition}
             onValueChange={setShowPosition}
             thumbColor={colors.primary}
-            trackColor={['#ccc', colors.primary]}
-          >
-            <AppText style={styles.switchLabel}>Show position on leaderboard</AppText>
-          </Switch>
+            trackColor={{ false: '#ccc', true: colors.primary }}
+          />
+          <AppText variant="bodyMedium" style={styles.switchLabel}>
+            Show position on leaderboard
+          </AppText>
         </View>
 
         {/* Leaderboard entries */}
-        {isLoading ? (
-          <View style={{ gap: 10 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <SkeletonCard key={i} lines={2} />
-            ))}
-          </View>
-        ) : error ? (
-          <ErrorState title="Couldn't load leaderboard data" message="Please try again." onRetry={() => refetch()} />
-        ) : (stats ?? []).length === 0 ? (
+        {(stats ?? []).length === 0 ? (
           <EmptyState
             icon="award"
             title="No leaderboard data"
@@ -143,15 +154,12 @@ export default function AdminLeaderboardScreen() {
           />
         ) : (
           <View style={styles.list}>
-            {displayed.map((s) => (
-              <GlassCard
-                key={s.user_id}
-                style={styles.row}
-                >
+            {displayed.map((s, idx) => (
+              <GlassCard key={s.user_id} style={styles.row}>
                 <View style={styles.rowInner}>
                   <View style={styles.rankWrap}>
                     <AppText variant="bodyMedium" style={styles.rank}>
-                      {s.rank ?? '—'}
+                      {showPosition ? `#${idx + 1}` : '—'}
                     </AppText>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -176,16 +184,16 @@ export default function AdminLeaderboardScreen() {
             Leaderboard Opt-In Status
           </AppText>
           <View style={styles.optInList}>
-            {optInStatus?.map((s) => (
+            {(optInStatus ?? []).map((s) => (
               <View key={s.user_id} style={styles.optInRow}>
-                <AppText variant="bodySmall" style={styles.optInName}>
+                <AppText variant="small" style={styles.optInName}>
                   {s.full_name ?? 'Unknown'}
                 </AppText>
                 <Switch
                   value={s.opted_in}
                   onValueChange={() => {}}
                   thumbColor={colors.primary}
-                  trackColor={['#ccc', colors.primary]}
+                  trackColor={{ false: '#ccc', true: colors.primary }}
                 />
                 <AppText variant="micro" style={styles.optInStatus}>
                   {s.opted_in ? 'Visible' : 'Hidden'}
@@ -201,12 +209,12 @@ export default function AdminLeaderboardScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { padding: 4 },
   body: { padding: 20, paddingBottom: 40, gap: 16 },
   metricSection: { marginBottom: 16 },
-  sectionLabel: { fontSize: 14, color: '#333', marginBottom: 8 },
+  sectionLabel: { fontSize: 14, marginBottom: 8 },
   metricToggle: {
     flexDirection: 'row',
     gap: 8,
@@ -218,39 +226,29 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  metricButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  metricButtonText: { color: '#333', fontSize: 12 },
-  metricSubtext: { fontSize: 10, color: '#666', marginTop: 4 },
+  metricButtonText: { fontSize: 12 },
+  metricButtonTextActive: { color: '#FFF' },
+  metricSubtext: { fontSize: 10, marginTop: 4 },
   positionToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
     padding: 8,
     backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 20,
   },
-  switchLabel: { color: '#333', fontSize: 13 },
+  switchLabel: { flex: 1 },
   list: { gap: 8 },
   row: {
     padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    marginBottom: 6,
   },
   rowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rankWrap: { width: 36, alignItems: 'center' },
   rank: { fontSize: 13, fontWeight: '600' },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   optInSummary: { marginTop: 24, padding: 16, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 12 },
-  sectionLabel: { fontSize: 13, color: '#555', marginBottom: 8 },
   optInList: { gap: 12 },
   optInRow: {
     flexDirection: 'row',
@@ -260,6 +258,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.7)',
     borderRadius: 8,
   },
-  optInName: { flex: 1, fontSize: 12 },
+  optInName: { flex: 1 },
   optInStatus: { fontSize: 11, color: 'green' },
 });

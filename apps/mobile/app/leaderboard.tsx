@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Switch, Text, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { AppText } from '@/components/ui/AppText';
@@ -16,7 +16,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useToast } from '@/components/ui/Toast';
 import { Feather } from '@expo/vector-icons';
-import { LeaderboardRow } from '@/types/leaderboard';
 
 interface LeaderboardResponse {
   period: string;
@@ -35,8 +34,8 @@ export default function LeaderboardScreen() {
   const session = useAuthStore((s) => s.session);
   const { leaderboardOptIn, setLeaderboardOptIn } = useSettingsStore();
   const { show } = useToast();
-  const [metric, setMetric] = React.useState<'xp' | 'questions'>('xp');
-  const [showPosition, setShowPosition] = React.useState<boolean>(true);
+  const [metric] = React.useState<'xp' | 'questions'>('xp');
+  const [showPosition] = React.useState<boolean>(true);
 
   const { data: optInStatus } = useQuery({
     queryKey: ['leaderboard-opt-in'],
@@ -62,15 +61,6 @@ export default function LeaderboardScreen() {
       setLeaderboardOptIn(!value);
       show('Could not update. Please try again.', 'error');
     }
-  };
-
-  const handleMetricChange = (newMetric: 'xp' | 'questions') => {
-    setMetric(newMetric);
-    refetch();
-  };
-
-  const handlePositionToggle = (value: boolean) => {
-    setShowPosition(value);
   };
 
   return (
@@ -217,27 +207,4 @@ const styles = StyleSheet.create({
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statsWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   note: { textAlign: 'center', marginTop: 4 },
-
-  /* Metric toggle styles */
-  metricToggle: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  metricButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  metricButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  metricButtonText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  metricButtonTextActive: {
-    color: 'white',
-  },
 });

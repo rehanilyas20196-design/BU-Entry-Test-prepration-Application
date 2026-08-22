@@ -89,6 +89,9 @@ export class TestsService {
       duration_minutes: mockTest.duration_minutes,
       questions: ordered.map((row, i) => {
         const q = (Array.isArray((row as any).question) ? (row as any).question[0] : (row as any).question) as any;
+        // Deterministic per-attempt option shuffle, remapped to sequential A–D keys
+        // so the correct answer lands at a random position for every question.
+        const { options } = this.seededShuffleOptions(attempt.id, q.id, q.options ?? []);
         return {
           order: i,
           question: {
@@ -97,10 +100,7 @@ export class TestsService {
             topic_id: q.topic_id,
             difficulty: q.difficulty,
             question_text: q.question_text,
-            options: (q.options ?? []).map((o: any) => ({
-              key: o.option_key,
-              text: o.option_text,
-            })),
+            options,
           },
         };
       }),
@@ -121,13 +121,21 @@ export class TestsService {
 
     const { data: question, error: qErr } = await this.supabase.admin
       .from('questions')
-      .select('correct_option')
+      .select('correct_option, options:question_options(option_key, option_text, is_correct)')
       .eq('id', dto.question_id)
       .maybeSingle();
     if (qErr) throw qErr;
     if (!question) throw new NotFoundException('Question not found');
 
-    const isCorrect = dto.selected_option != null && dto.selected_option === question.correct_option;
+    // Translate the shuffled display key (A–D) back to the original DB key
+    // using the same deterministic permutation derived in startAttempt.
+    let selectedOriginal: string | null | undefined = dto.selected_option;
+    if (dto.selected_option != null && Array.isArray(question.options) && question.options.length > 0) {
+      const { newToOld } = this.seededShuffleOptions(dto.attempt_id, dto.question_id, question.options as any[]);
+      selectedOriginal = newToOld.get(dto.selected_option) ?? dto.selected_option;
+    }
+
+    const isCorrect = selectedOriginal != null && selectedOriginal === question.correct_option;
 
     const { data, error } = await this.supabase.admin
       .from('test_answers')
@@ -360,5 +368,55 @@ export class TestsService {
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+  }
+
+  /** FNV-1a string hash → 32-bit seed for deterministic option permutations. */
+  private hashSeed(str: string): number {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  /** Small fast seeded PRNG so attempt+question always yields the same permutation. */
+  private mulberry32(seed: number): () => number {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6d2b79f5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /**
+   * Deterministic per-attempt option shuffle. Options are canonically ordered by
+   * original key, permuted with a seeded Fisher-Yates, then relabeled A, B, C, D…
+   * Returns display options plus a new-key → original-key map used by saveAnswer
+   * to translate selections back before server-side scoring.
+   */
+  private seededShuffleOptions(
+    attemptId: string,
+    questionId: string,
+    options: { option_key: string; option_text: string }[],
+  ): { options: { key: string; text: string }[]; newToOld: Map<string, string> } {
+    const canonical = [...options].sort((a, b) => a.option_key.localeCompare(b.option_key));
+    const rand = this.mulberry32(this.hashSeed(`${attemptId}:${questionId}`));
+    const idx = canonical.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const newToOld = new Map<string, string>();
+    const out = idx.map((ci, newPos) => {
+      const opt = canonical[ci];
+      const key = keys[newPos] ?? opt.option_key;
+      newToOld.set(key, opt.option_key);
+      return { key, text: opt.option_text };
+    });
+    return { options: out, newToOld };
   }
 }

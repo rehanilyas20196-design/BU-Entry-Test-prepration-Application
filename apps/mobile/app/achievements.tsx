@@ -5,7 +5,6 @@ import {
   View,
   Pressable,
   ActivityIndicator,
-  Text,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -16,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ACHIEVEMENTS, Achievement, AchievementData } from '@/content/achievements';
 
 interface UserStats {
@@ -31,18 +31,6 @@ interface AnalyticsData {
   overall_accuracy: number;
   topic_breakdown?: { attempted: number; last_accuracy: number | null }[];
   mock_tests?: { mode: string; status: string }[];
-}
-
-interface HeroBadge {
-  id: string;
-  emoji: string;
-  title: string;
-  description: string;
-  target: number;
-  current: number;
-  unlocked: boolean;
-  isFeatured?: boolean;
-  isAlmostUnlocked?: boolean;
 }
 
 export default function AchievementsScreen() {
@@ -122,8 +110,13 @@ export default function AchievementsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {/* GAMIFIED HERO BANNER CARD */}
-        <View style={[styles.heroCard, { backgroundColor: colors.primaryLight + '50', borderColor: colors.primary + '30' }]}>
+        {/* GAMIFIED HERO BANNER CARD — soft purple/blue gradient hero */}
+        <LinearGradient
+          colors={['#EDE9FE', '#DBEAFE', '#EFF6FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: colors.primary + '30' }]}
+        >
           {/* Badge Arc / Scatter Cluster */}
           <View style={styles.clusterContainer}>
             {heroCluster.map((item, i) => (
@@ -183,7 +176,7 @@ export default function AchievementsScreen() {
               delay={150}
             />
           </View>
-        </View>
+        </LinearGradient>
 
         {/* INDIVIDUAL ACHIEVEMENTS LIST */}
         <View style={styles.list}>
