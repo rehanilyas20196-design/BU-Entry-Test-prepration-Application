@@ -183,7 +183,7 @@ export default function AdminLeaderboardScreen() {
                 </AppText>
                 <Switch
                   value={s.opted_in}
-                  onValueChange={}
+                  onValueChange={() => {}}
                   thumbColor={colors.primary}
                   trackColor={['#ccc', colors.primary]}
                 />
